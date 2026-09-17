@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MomFit - เว็บบันทึกน้ำหนักและออกกำลังกาย</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js for weight progress graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            font-family: 'Prompt', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Color Themes */
+        .theme-rose { --primary: #f43f5e; --primary-dark: #e11d48; --primary-light: #fff1f2; --primary-border: #fecdd3; }
+        .theme-sky { --primary: #0284c7; --primary-dark: #0369a1; --primary-light: #f0f9ff; --primary-border: #bae6fd; }
+        .theme-emerald { --primary: #059669; --primary-dark: #047857; --primary-light: #ecfdf5; --primary-border: #a7f3d0; }
+        .theme-violet { --primary: #7c3aed; --primary-dark: #6d28d9; --primary-light: #f5f3ff; --primary-border: #ddd6fe; }
+        .theme-amber { --primary: #d97706; --primary-dark: #b45309; --primary-light: #fffbeb; --primary-border: #fde68a; }
+
+        .dynamic-theme-header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); }
+        .dynamic-theme-btn { background-color: var(--primary); }
+        .dynamic-theme-btn:hover { background-color: var(--primary-dark); }
+        .dynamic-theme-text { color: var(--primary); }
+        .dynamic-theme-border { border-color: var(--primary); }
+        .dynamic-theme-bg-light { background-color: var(--primary-light); }
+        .badge-locked { opacity: 0.4; filter: grayscale(100%); }
+        .badge-unlocked { animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex justify-center selection:bg-rose-100 selection:text-rose-600">
+
+    <!-- Main Mobile Container -->
+    <div id="appContainer" class="w-full max-w-md bg-white min-h-screen flex flex-col shadow-2xl relative pb-20 theme-rose overflow-hidden">
+        
+        <!-- Wallpaper Background Layers -->
+        <div id="wallpaperBackdrop" class="absolute inset-0 bg-cover bg-center pointer-events-none z-0 hidden transition-all duration-500"></div>
+        <div id="wallpaperOverlay" class="absolute inset-0 bg-white/85 backdrop-blur-[2px] pointer-events-none z-0 hidden"></div>
+
+        <header class="dynamic-theme-header text-white p-5 rounded-b-3xl shadow-md sticky top-0 z-30 transition-all duration-300 relative">
+            <div class="flex justify-between items-center">
+                <div>
+                    <span id="headerSubtitle" class="text-xs font-light bg-white/20 px-2.5 py-0.5 rounded-full backdrop-blur-sm">ภารกิจ 5 เดือนเปลี่ยนหุ่น 💖</span>
+                    <h1 id="headerTitle" class="text-2xl font-bold tracking-tight mt-1">MomFit สุขภาพดี</h1>
+                </div>
+                <div class="flex flex-col items-end gap-1.5">
+                    <!-- Language Switcher Button -->
+                    <button type="button" onclick="toggleLanguage()" id="langToggleBtn" class="bg-white/20 hover:bg-white/30 active:scale-95 transition backdrop-blur-md px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 shadow-sm border border-white/25">
+                        <span id="langFlag">🇹🇭</span>
+                        <span id="langCodeText">TH / EN</span>
+                        <i class="fa-solid fa-globe text-[10px] opacity-80"></i>
+                    </button>
+                    <!-- Day Streak Badge -->
+                    <span id="headerStreakBadge" class="inline-flex items-center gap-1.5 bg-amber-400 text-amber-950 font-bold px-3 py-0.5 rounded-full text-xs shadow-sm">
+                        <i class="fa-solid fa-fire text-orange-600"></i> <span id="streakCount">0</span> <span id="streakUnitText">วันติดกัน</span>
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Scrollable Content -->
+        <main class="p-4 flex-1 overflow-y-auto space-y-4 no-scrollbar relative z-10">
+
+            <!-- TAB 1: DASHBOARD -->
+            <div id="tab-dashboard" class="space-y-4">
+                
+                <!-- 1. Quick Guide Banner -->
+                <div class="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-200/80 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl">📖</span>
+                        <div>
+                            <h4 id="guideBannerTitle" class="text-xs font-bold text-amber-950">วิธีใช้สำหรับคุณแม่ (3 ขั้นตอน)</h4>
+                            <p id="guideBannerSub" class="text-[11px] text-amber-800">อ่านง่าย เข้าใจไวใน 1 นาที</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="openGuideModal()" id="guideBannerBtn" class="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs active:scale-95 transition">
+                        ดูวิธีใช้
+                    </button>
+                </div>
+
+                <!-- 2. Progress Card (Dynamic Duration Challenge) -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-5 border border-slate-100 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-xs text-slate-400 font-medium tracking-wider uppercase" id="lblProgressTotal">ความคืบหน้ารวม</span>
+                            <div class="flex items-baseline gap-2 mt-0.5">
+                                <h2 class="text-3xl font-extrabold dynamic-theme-text" id="percentText">0%</h2>
+                                <span class="text-xs text-slate-500" id="goalTargetSubText">(เป้าหมายลด 22 กก.)</span>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('settings')" id="adjustGoalBtn" class="text-xs text-slate-400 hover:text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                            ปรับเป้าหมาย
+                        </button>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-slate-100 h-3 rounded-full overflow-hidden mt-2 p-0.5">
+                        <div id="mainProgressBar" class="dynamic-theme-btn h-full rounded-full transition-all duration-700 w-0"></div>
+                    </div>
+
+                    <!-- 3 Metric Numbers -->
+                    <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100 text-center">
+                        <div class="p-2 bg-slate-50/90 rounded-xl">
+                            <span class="text-[11px] text-slate-400 block" id="lblLatestW">ชั่งล่าสุด</span>
+                            <span class="text-base font-bold text-slate-800" id="dashCurrentWeight">0</span>
+                            <span class="text-[10px] text-slate-500" id="unitLatestW">กก.</span>
+                        </div>
+                        <div class="p-2 dynamic-theme-bg-light rounded-xl">
+                            <span class="text-[11px] dynamic-theme-text block font-medium" id="lblLostW">ลดไปแล้ว</span>
+                            <span class="text-base font-bold dynamic-theme-text" id="dashLostWeight">0.0</span>
+                            <span class="text-[10px] dynamic-theme-text font-medium" id="unitLostW">กก.</span>
+                        </div>
+                        <div class="p-2 bg-slate-50/90 rounded-xl">
+                            <span class="text-[11px] text-slate-400 block" id="lblTargetW">เป้าหมาย</span>
+                            <span class="text-base font-bold text-slate-800" id="dashTargetWeight">0</span>
+                            <span class="text-[10px] text-slate-500" id="unitTargetW">กก.</span>
+                        </div>
+                    </div>
+
+                    <!-- Time Remaining Badge -->
+                    <div class="mt-3 text-center">
+                        <span class="text-xs text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100 inline-flex items-center gap-1.5">
+                            <i class="fa-regular fa-clock dynamic-theme-text"></i> <span id="lblDaysRemain">เหลือเวลาอีก:</span> <strong id="daysRemainingText" class="text-slate-800">150</strong> <span id="lblDaysUnit">วัน</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 3. One-Click LINE Share Card -->
+                <div class="bg-gradient-to-br from-[#06C755]/15 to-[#06C755]/5 border border-[#06C755]/30 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-[#06C755] text-white flex items-center justify-center text-xl shadow-xs shrink-0">
+                            <i class="fa-brands fa-line"></i>
+                        </div>
+                        <div>
+                            <h4 id="lineShareTitle" class="text-xs font-bold text-slate-800">ส่งผลงานวันนี้ให้ลูกดู</h4>
+                            <p id="lineShareSub" class="text-[11px] text-slate-500">แชร์อวดหุ่นสวยเข้า LINE ใน 1 คลิก</p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="openShareLineModal()" id="lineShareBtn" class="shrink-0 bg-[#06C755] hover:bg-[#05b34c] text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-xs active:scale-95 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-paper-plane text-[11px]"></i> <span>ส่ง LINE</span>
+                    </button>
+                </div>
+
+                <!-- 5. Daily Water Intake (8 Glasses / 2L) -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 id="waterTitle" class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-droplet text-sky-500"></i> ดื่มน้ำวันนี้ (เป้าหมาย 2 ลิตร)
+                            </h3>
+                            <p id="waterSub" class="text-[10px] text-slate-400">แตะที่แก้วเมื่อดื่มครบ (แก้วละ ~250 มล.)</p>
+                        </div>
+                        <span class="text-xs font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-lg border border-sky-100">
+                            <span id="waterCupCountText">0</span>/8 <span id="waterUnitText">แก้ว</span>
+                        </span>
+                    </div>
+
+                    <!-- 8 Glass Icons Grid -->
+                    <div class="grid grid-cols-8 gap-1.5 pt-1" id="waterGlassesContainer">
+                        <!-- Generated by JS -->
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-50 text-[11px]">
+                        <span id="waterStatusComment" class="text-slate-500 font-medium">จิบน้ำบ่อยๆ ช่วยลดบวมน้ำได้ดีนะคะ</span>
+                        <div class="flex items-center gap-1">
+                            <button onclick="adjustWater(-1)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold active:scale-90">-</button>
+                            <button onclick="adjustWater(1)" class="w-6 h-6 rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-700 flex items-center justify-center text-xs font-bold active:scale-90">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Milestone Badges Showcase -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-4 border border-slate-100 shadow-sm space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h3 id="badgeTitle" class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="fa-solid fa-award text-amber-500"></i> เหรียญรางวัลความสำเร็จ
+                        </h3>
+                        <span id="unlockedBadgesCount" class="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg border border-amber-200/60">
+                            ปลดล็อก 0/6
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2" id="milestonesContainer">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- 7. Daily Tip Card -->
+                <div class="bg-indigo-50/80 border border-indigo-100 p-3 rounded-2xl flex items-start gap-2.5">
+                    <span class="text-xl">💡</span>
+                    <div>
+                        <h4 id="tipTitle" class="text-xs font-bold text-indigo-900">คำแนะนำวันนี้:</h4>
+                        <p id="dailyTipText" class="text-[11px] text-indigo-800 mt-0.5 leading-relaxed">
+                            สลับวันกระโดดเชือกและบอดี้เวท ดื่มน้ำให้เพียงพอ พักผ่อนให้เต็มที่นะคะแม่!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 8. Weight Trend Graph -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-4 border border-slate-100 shadow-sm">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 id="chartTitle" class="text-xs font-bold text-slate-800">กราฟแนวโน้มน้ำหนัก</h3>
+                        <span id="chartBadge" class="text-[10px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">บันทึกล่าสุด</span>
+                    </div>
+                    <div class="h-44 w-full">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 9. Recent Workout Activities -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-4 border border-slate-100 shadow-sm space-y-2.5">
+                    <div class="flex justify-between items-center">
+                        <h3 id="recentTitle" class="text-xs font-bold text-slate-800">ออกกำลังกายล่าสุด</h3>
+                        <button onclick="switchTab('history')" id="viewAllBtn" class="text-[11px] dynamic-theme-text font-medium">ดูทั้งหมด</button>
+                    </div>
+                    <div id="recentActivityList" class="space-y-2">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- TAB 2: LOG TODAY -->
+            <div id="tab-log" class="hidden space-y-4">
+                
+                <!-- Editing Notification Banner -->
+                <div id="editModeAlert" class="hidden bg-amber-500 text-white p-3 rounded-2xl flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span class="text-xs font-medium" id="editAlertText">กำลังแก้ไขข้อมูลย้อนหลัง</span>
+                    </div>
+                    <button type="button" onclick="cancelEditing()" id="cancelEditBtn" class="text-[10px] bg-white/20 hover:bg-white/30 px-2 py-1 rounded-lg">
+                        ยกเลิก
+                    </button>
+                </div>
+
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
+                    <div>
+                        <h2 id="logTitle" class="text-base font-bold text-slate-800">บันทึกข้อมูลประจำวัน</h2>
+                        <p id="logSub" class="text-xs text-slate-400">จดง่ายๆ วันละ 1 นาที เพื่อหุ่นสวยสุขภาพดี</p>
+                    </div>
+
+                    <form id="dailyLogForm" onsubmit="handleSaveLog(event)" class="space-y-4">
+                        
+                        <!-- 1. Date Input -->
+                        <div>
+                            <label id="logDateLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">วันที่บันทึก</label>
+                            <input type="date" id="inputDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
+                        </div>
+
+                        <!-- 2. Weight Input -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label id="logWeightLabel" class="text-xs font-semibold text-slate-600">น้ำหนักชั่งเช้านี้ (กก.)</label>
+                                <div class="flex items-center gap-1">
+                                    <button type="button" onclick="adjustWeightInput(-0.5)" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg active:scale-95 transition">-0.5</button>
+                                    <button type="button" onclick="adjustWeightInput(0.5)" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-0.5 rounded-lg active:scale-95 transition">+0.5</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustWeightInput(-0.1)" class="w-12 h-12 shrink-0 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xl flex items-center justify-center active:scale-95 transition">-</button>
+                                <div class="relative flex-1 min-w-0">
+                                    <input type="number" id="inputWeight" step="0.1" min="30" max="200" required placeholder="00.0" class="w-full text-center text-2xl font-bold bg-slate-50 border border-slate-200 rounded-2xl py-2 px-1 text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
+                                </div>
+                                <button type="button" onclick="adjustWeightInput(0.1)" class="w-12 h-12 shrink-0 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xl flex items-center justify-center active:scale-95 transition">+</button>
+                            </div>
+                        </div>
+
+                        <!-- 3. Waist Measurement -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label id="logWaistLabel" class="text-xs font-semibold text-slate-600">รอบเอว (เซนติเมตร)</label>
+                                <span id="logWaistHint" class="text-[10px] text-slate-400">* วัดสัปดาห์ละครั้งก็ได้</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="adjustWaistInput(-0.5)" class="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center active:scale-95 transition">-</button>
+                                <div class="relative flex-1 min-w-0">
+                                    <input type="number" id="inputWaist" step="0.5" min="40" max="150" placeholder="เช่น 85 (ไม่ใส่ก็ได้)" class="w-full text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
+                                </div>
+                                <button type="button" onclick="adjustWaistInput(0.5)" class="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center active:scale-95 transition">+</button>
+                            </div>
+                            <p id="logWaistNote" class="text-[10px] text-indigo-600 mt-1 bg-indigo-50/70 p-1.5 rounded-lg">
+                                💡 บอดี้เวทจะช่วยให้เอวคอดลง แม้น้ำหนักบนตาชั่งจะยังไม่ลด
+                            </p>
+                        </div>
+
+                        <!-- 4. Workout Type Selector (4 Types including 'Other') -->
+                        <div>
+                            <label id="logWorkoutLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">กิจกรรมวันนี้</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="selectWorkout('jumprope')" id="workoutBtn-jumprope" class="p-3 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-600 flex items-center justify-center gap-2 transition">
+                                    <span class="text-2xl">🪢</span>
+                                    <span class="text-xs font-bold" id="workJumpropeText">กระโดดเชือก</span>
+                                </button>
+                                <button type="button" onclick="selectWorkout('bodyweight')" id="workoutBtn-bodyweight" class="p-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-500 flex items-center justify-center gap-2 transition">
+                                    <span class="text-2xl">🧘‍♀️</span>
+                                    <span class="text-xs font-bold" id="workBodyweightText">บอดี้เวท</span>
+                                </button>
+                                <button type="button" onclick="selectWorkout('other')" id="workoutBtn-other" class="p-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-500 flex items-center justify-center gap-2 transition">
+                                    <span class="text-2xl">🏃‍♀️</span>
+                                    <span class="text-xs font-bold" id="workOtherText">กิจกรรมอื่นๆ</span>
+                                </button>
+                                <button type="button" onclick="selectWorkout('rest')" id="workoutBtn-rest" class="p-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-500 flex items-center justify-center gap-2 transition">
+                                    <span class="text-2xl">💤</span>
+                                    <span class="text-xs font-bold" id="workRestText">วันพักผ่อน</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 5. Workout Detail Input -->
+                        <div id="workoutDetailContainer">
+                            <label id="logDetailLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">รายละเอียดกิจกรรม</label>
+                            <input type="text" id="inputWorkoutDetail" placeholder="เช่น กระโดด 1,000 ครั้ง หรือ บอดี้เวท 25 นาที" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
+                        </div>
+
+                        <!-- 6. Mood / Feelings -->
+                        <div>
+                            <label id="logMoodLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">ความรู้สึกวันนี้</label>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="mood" value="🤩 สบายมาก" checked class="peer sr-only">
+                                    <div class="p-2 rounded-xl border border-slate-200 peer-checked:bg-amber-50 peer-checked:border-amber-400 peer-checked:text-amber-800 font-medium transition" id="moodGreatText">🤩 สบายมาก</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="mood" value="😊 กำลังดี" class="peer sr-only">
+                                    <div class="p-2 rounded-xl border border-slate-200 peer-checked:bg-emerald-50 peer-checked:border-emerald-400 peer-checked:text-emerald-800 font-medium transition" id="moodGoodText">😊 กำลังดี</div>
+                                </label>
+                                <label class="cursor-pointer">
+                                    <input type="radio" name="mood" value="💦 เหนื่อยสู้" class="peer sr-only">
+                                    <div class="p-2 rounded-xl border border-slate-200 peer-checked:bg-rose-50 peer-checked:border-rose-400 peer-checked:text-rose-800 font-medium transition" id="moodTiredText">💦 เหนื่อยสู้</div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 7. Short Note -->
+                        <div>
+                            <label id="logNoteLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">บันทึกช่วยจำ (ไม่ใส่ก็ได้)</label>
+                            <input type="text" id="inputNote" placeholder="เช่น วันนี้กินคลีน ดื่มน้ำเยอะ สดชื่น" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" id="saveLogButton" class="w-full dynamic-theme-btn text-white font-bold py-3.5 px-4 rounded-2xl shadow-md active:scale-98 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-check"></i> <span id="saveLogButtonText">บันทึกข้อมูลวันนี้</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- TAB 3: HISTORY -->
+            <div id="tab-history" class="hidden space-y-4">
+                <div class="flex justify-between items-center px-1">
+                    <h2 id="historyTitle" class="text-sm font-bold text-slate-700">ประวัติการบันทึกทั้งหมด</h2>
+                    <span id="totalLogCountBadge" class="text-xs bg-slate-200/80 text-slate-700 font-semibold px-2 py-0.5 rounded-full">0 รายการ</span>
+                </div>
+                <div id="fullHistoryList" class="space-y-2.5">
+                    <!-- History entries filled by JS -->
+                </div>
+            </div>
+
+            <!-- TAB 4: SETTINGS -->
+            <div id="tab-settings" class="hidden space-y-4">
+                <!-- Setting Card 1: Goal Setup -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
+                    <div>
+                        <h2 id="settingsTitle" class="text-base font-bold text-slate-800">ตั้งค่าเป้าหมายลดน้ำหนัก</h2>
+                        <p id="settingsSub" class="text-xs text-slate-400">ปรับเปลี่ยนน้ำหนักตั้งต้นและเป้าหมายตามสะดวก</p>
+                    </div>
+
+                    <form id="settingsForm" onsubmit="handleSaveSettings(event)" class="space-y-3.5">
+                        <div>
+                            <label id="startWeightLabel" class="text-xs font-semibold text-slate-600 block mb-1">น้ำหนักเริ่มต้น (กก.)</label>
+                            <input type="number" step="0.1" id="setStartWeight" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-700">
+                        </div>
+                        <div>
+                            <label id="targetWeightLabel" class="text-xs font-semibold text-slate-600 block mb-1">เป้าหมายน้ำหนักที่ต้องการ (กก.)</label>
+                            <input type="number" step="0.1" id="setTargetWeight" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-700">
+                            <span id="targetHint" class="text-[10px] text-slate-400 mt-1 block">* คุณแม่ตั้งเป้าลด 20 - 25 กิโลกรัม</span>
+                        </div>
+                        <div>
+                            <label id="startDateLabel" class="text-xs font-semibold text-slate-600 block mb-1">วันเริ่มภารกิจ</label>
+                            <input type="date" id="setStartDate" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-700">
+                        </div>
+                        <div>
+                            <label id="durationLabel" class="text-xs font-semibold text-slate-600 block mb-1">ระยะเวลาชาเลนจ์ (เดือน)</label>
+                            <input type="number" id="setDuration" min="1" max="36" step="1" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-700">
+                            <span id="durationHint" class="text-[10px] text-slate-400 mt-1 block">* ปรับเปลี่ยนจำนวนเดือนได้อิสระ เช่น 3, 5, 6 เดือน</span>
+                        </div>
+
+                        <button type="submit" id="saveSettingsBtn" class="w-full dynamic-theme-btn text-white font-bold py-3 rounded-xl shadow-xs active:scale-95 transition mt-2 text-xs">
+                            บันทึกการตั้งค่า
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Setting Card 2: Color Theme & Custom Wallpaper with Opacity Slider -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
+                    <div>
+                        <h3 id="themeTitle" class="text-sm font-bold text-slate-800">ธีมสี & ภาพพื้นหลัง</h3>
+                        <p id="themeSub" class="text-[11px] text-slate-400">เลือกสีสันที่ชอบหรือใส่รูปภาพที่คุณแม่ประทับใจ</p>
+                    </div>
+
+                    <!-- Theme Color Swatches -->
+                    <div>
+                        <label id="themeSwatchesLabel" class="text-xs font-semibold text-slate-600 block mb-2">เลือกโทนสีประจำตัว</label>
+                        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <button type="button" onclick="setAppTheme('rose')" id="themeBtn-rose" class="w-8 h-8 rounded-full bg-rose-500 ring-2 ring-offset-2 ring-transparent transition active:scale-90" title="Rose"></button>
+                            <button type="button" onclick="setAppTheme('sky')" id="themeBtn-sky" class="w-8 h-8 rounded-full bg-sky-500 ring-2 ring-offset-2 ring-transparent transition active:scale-90" title="Sky"></button>
+                            <button type="button" onclick="setAppTheme('emerald')" id="themeBtn-emerald" class="w-8 h-8 rounded-full bg-emerald-500 ring-2 ring-offset-2 ring-transparent transition active:scale-90" title="Emerald"></button>
+                            <button type="button" onclick="setAppTheme('violet')" id="themeBtn-violet" class="w-8 h-8 rounded-full bg-violet-500 ring-2 ring-offset-2 ring-transparent transition active:scale-90" title="Violet"></button>
+                            <button type="button" onclick="setAppTheme('amber')" id="themeBtn-amber" class="w-8 h-8 rounded-full bg-amber-500 ring-2 ring-offset-2 ring-transparent transition active:scale-90" title="Amber"></button>
+                        </div>
+                    </div>
+
+                    <!-- Wallpaper Custom Controls -->
+                    <div class="pt-3 border-t border-slate-100 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <label id="wallpaperStatusText" class="text-xs font-semibold text-slate-700 block">รูปพื้นหลังส่วนตัว</label>
+                                <span id="wallpaperHintText" class="text-[10px] text-slate-400 block">อัปโหลดรูปเพื่อใช้เป็นภาพพื้นหลัง</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <input type="file" id="wallpaperFileInput" accept="image/*" class="hidden" onchange="handleWallpaperSelect(event)">
+                                <button type="button" onclick="document.getElementById('wallpaperFileInput').click()" id="uploadWallpaperBtn" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold active:scale-95 transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-cloud-arrow-up text-xs"></i> <span id="uploadWallpaperBtnText">เลือกรูป</span>
+                                </button>
+                                <button type="button" onclick="removeWallpaper()" id="removeWallpaperBtn" class="hidden px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-semibold active:scale-95 transition">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Opacity Slider (Adjust Wallpaper Transparency) -->
+                        <div id="wallpaperOpacityContainer" class="hidden bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2">
+                            <div class="flex justify-between items-center text-xs">
+                                <span id="wallpaperOpacityLabel" class="font-medium text-slate-600">ความโปร่งแสงของภาพพื้นหลัง</span>
+                                <span id="wallpaperOpacityValueText" class="font-bold dynamic-theme-text">30%</span>
+                            </div>
+                            <input type="range" id="wallpaperOpacityInput" min="5" max="85" step="5" value="30" oninput="handleWallpaperOpacityChange(this.value)" class="w-full accent-rose-500 h-2 bg-slate-200 rounded-lg cursor-pointer">
+                            <span id="wallpaperOpacityHint" class="text-[10px] text-slate-400 block leading-tight">เลื่อนเพื่อปรับให้ภาพจางลง ช่วยให้อ่านตัวหนังสือและตัวเลขได้ชัดเจนขึ้น</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Setting Card 3: System Tone Ending -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
+                    <label id="toneLabel" class="text-xs font-semibold text-slate-600 block">คำลงท้ายของระบบ</label>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="toneEnding" value="ค่ะ" checked onchange="handleToneChange('ค่ะ')" class="peer sr-only">
+                            <div class="p-2.5 rounded-xl border border-slate-200 peer-checked:bg-rose-50 peer-checked:border-rose-400 peer-checked:text-rose-700 font-semibold text-center transition" id="toneKhaText">
+                                🌸 ค่ะ / นะคะ
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="toneEnding" value="ครับ" onchange="handleToneChange('ครับ')" class="peer sr-only">
+                            <div class="p-2.5 rounded-xl border border-slate-200 peer-checked:bg-indigo-50 peer-checked:border-indigo-400 peer-checked:text-indigo-700 font-semibold text-center transition" id="toneKhrabText">
+                                🌿 ครับ / นะครับ
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Setting Card 4: Data Management & Reset -->
+                <div class="bg-white/95 backdrop-blur-xs rounded-2xl p-5 border border-slate-100 shadow-sm space-y-2">
+                    <button type="button" onclick="confirmClearDemoData()" id="clearDataBtn" class="w-full py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold rounded-xl text-xs transition">
+                        เคลียร์ข้อมูลตัวอย่างทั้งหมด (พร้อมเริ่มบันทึกจริง)
+                    </button>
+                    <button type="button" onclick="confirmResetDemoData()" id="reloadDemoBtn" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-500 font-medium rounded-xl text-[11px] transition">
+                        โหลดข้อมูลตัวอย่างกลับมาใหม่อีกครั้ง
+                    </button>
+                </div>
+            </div>
+
+        </main>
+
+        <nav class="fixed bottom-0 w-full max-w-md bg-white/95 backdrop-blur-md border-t border-slate-200 flex justify-around py-2.5 px-3 z-40 shadow-lg">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex flex-col items-center justify-center flex-1 dynamic-theme-text transition active:scale-95">
+                <i class="fa-solid fa-chart-pie text-lg"></i>
+                <span class="text-[11px] font-bold mt-1">หน้าหลัก</span>
+            </button>
+            <button onclick="switchTab('log')" id="nav-log" class="flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-600 transition active:scale-95">
+                <i class="fa-solid fa-circle-plus text-lg"></i>
+                <span class="text-[11px] font-bold mt-1">บันทึกวันนี้</span>
+            </button>
+            <button onclick="switchTab('history')" id="nav-history" class="flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-600 transition active:scale-95">
+                <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+                <span class="text-[11px] font-bold mt-1">ประวัติ</span>
+            </button>
+            <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center justify-center flex-1 text-slate-400 hover:text-slate-600 transition active:scale-95">
+                <i class="fa-solid fa-gear text-lg"></i>
+                <span class="text-[11px] font-bold mt-1">ตั้งค่า</span>
+            </button>
+        </nav>
+
+        <!-- MODAL 1: User Guide Modal -->
+        <div id="guideModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">📖</span>
+                        <h3 id="guideModalHeader" class="font-bold text-base text-slate-800">คู่มือวิธีใช้งานสำหรับคุณแม่</h3>
+                    </div>
+                    <button onclick="closeGuideModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-3.5 text-xs text-slate-600">
+                    <!-- Step 1 -->
+                    <div class="flex gap-3 items-start bg-rose-50/70 p-3.5 rounded-2xl border border-rose-100">
+                        <div class="w-7 h-7 rounded-xl bg-rose-500 text-white font-bold flex items-center justify-center shrink-0 shadow-xs">1</div>
+                        <div>
+                            <strong id="guideStep1Title" class="text-slate-800 text-xs block mb-0.5 font-bold">ชั่งน้ำหนักตอนเช้าหลังเข้าห้องน้ำ</strong>
+                            <span id="guideStep1Desc">ชั่งตอนท้องว่างทุกเช้าก่อนดื่มน้ำหรือทานข้าว เพื่อตัวเลขที่แม่นยำที่สุด แล้วกดปุ่ม <strong>"บันทึกวันนี้"</strong> ด้านล่าง</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="flex gap-3 items-start bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100">
+                        <div class="w-7 h-7 rounded-xl bg-indigo-500 text-white font-bold flex items-center justify-center shrink-0 shadow-xs">2</div>
+                        <div>
+                            <strong id="guideStep2Title" class="text-slate-800 text-xs block mb-0.5 font-bold">กดเลือกกิจกรรม & บันทึกรอบเอว</strong>
+                            <span id="guideStep2Desc">แตะเลือก <strong>🪢 กระโดดเชือก</strong>, <strong>🧘‍♀️ บอดี้เวท</strong>, <strong>🏃‍♀️ อื่นๆ</strong> หรือ <strong>💤 วันพัก</strong> และวัดรอบเอวสัปดาห์ละครั้ง</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="flex gap-3 items-start bg-emerald-50/70 p-3.5 rounded-2xl border border-emerald-100">
+                        <div class="w-7 h-7 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center shrink-0 shadow-xs">3</div>
+                        <div>
+                            <strong id="guideStep3Title" class="text-slate-800 text-xs block mb-0.5 font-bold">เก็บเหรียญรางวัล & ส่ง LINE ให้ลูก</strong>
+                            <span id="guideStep3Desc">สะสมเหรียญรางวัลทุกกิโลที่ลดได้ ดื่มน้ำให้ครบ 8 แก้ว และกดปุ่ม <strong>"ส่ง LINE"</strong> เพื่อส่งผลงานอวดลูกได้ทุกวัน</span>
+                        </div>
+                    </div>
+
+                    <!-- Tips for Mom -->
+                    <div class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200/70">
+                        <p id="guideTipHeader" class="font-bold text-amber-900 mb-1.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-lightbulb text-amber-500"></i> ทริกสำคัญที่คุณแม่ควรรู้:
+                        </p>
+                        <p id="guideTipText1" class="text-[11px] text-amber-800 leading-relaxed">• หากวันไหนน้ำหนักไม่ลง ไม่ต้องตกใจนะคะ เพราะการบอดี้เวทช่วยสร้างกล้ามเนื้อกระชับสัดส่วนแทนไขมัน ให้ดูที่รอบเอวประกอบด้วยค่ะ</p>
+                        <p id="guideTipText2" class="text-[11px] text-amber-800 leading-relaxed mt-1.5">• หากลืมจดหรือใส่น้ำหนักผิด เข้าแท็บ <strong>"ประวัติ"</strong> แล้วกดปุ่ม <strong>[แก้ไข]</strong> ย้อนหลังได้ตลอดเวลา</p>
+                        <p id="guideTipText3" class="text-[11px] text-amber-800 leading-relaxed mt-1.5">• แตะปุ่ม <strong>TH / EN</strong> ที่มุมขวาบนเพื่อสลับภาษาไทย-อังกฤษได้ตลอดเวลาค่ะ</p>
+                    </div>
+                </div>
+
+                <button type="button" onclick="closeGuideModal()" id="guideCloseBtn" class="w-full py-3 dynamic-theme-btn text-white font-bold rounded-xl shadow-md active:scale-95 transition text-xs">
+                    เข้าใจแล้ว เริ่มลุยเลย! 💖
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL 2: LINE Share Modal -->
+        <div id="lineShareModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-brands fa-line text-[#06C755] text-2xl"></i>
+                        <h3 class="font-bold text-base text-slate-800" id="shareModalHeader">ส่งรายงานให้ลูกดู</h3>
+                    </div>
+                    <button onclick="closeShareLineModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-sm transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div>
+                    <label class="text-[11px] font-semibold text-slate-500 block mb-1.5" id="shareModalLabel">ข้อความที่จะส่ง (แก้ไขก่อนส่งได้นะคะ):</label>
+                    <textarea id="shareTextInput" rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#06C755] leading-relaxed"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="copyShareText()" id="copyShareBtn" class="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs active:scale-95 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-regular fa-copy"></i> <span id="copyShareBtnText">คัดลอกข้อความ</span>
+                    </button>
+                    <button type="button" onclick="sendDirectToLine()" id="openLineAppBtn" class="py-2.5 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold rounded-xl text-xs active:scale-95 transition shadow-xs flex items-center justify-center gap-1.5">
+                        <i class="fa-brands fa-line text-sm"></i> <span id="openLineAppBtnText">เปิดแอป LINE</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL 3: Milestone Unlocked Modal -->
+        <div id="milestoneModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-6 text-center shadow-2xl space-y-3">
+                <div class="text-6xl animate-bounce" id="milestoneModalIcon">🏅</div>
+                <h3 class="text-lg font-bold text-slate-800" id="milestoneModalTitle">ยินดีด้วยค่ะคุณแม่!</h3>
+                <p class="text-xs text-slate-500 leading-relaxed" id="milestoneModalDesc">คุณแม่ปลดล็อกเหรียญความสำเร็จใหม่แล้ว เก่งมากๆ เลยค่ะ</p>
+                <button type="button" onclick="closeMilestoneModal()" id="milestoneModalCloseBtn" class="w-full py-2.5 dynamic-theme-btn text-white font-bold rounded-xl text-xs active:scale-95 transition shadow-md">
+                    รับรางวัลและสู้ต่อ! 💖
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL 4: Custom Confirm Dialog -->
+        <div id="customConfirmModal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+            <div class="bg-white w-full max-w-xs rounded-3xl p-5 shadow-2xl space-y-3 text-center">
+                <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-500 text-xl flex items-center justify-center mx-auto" id="confirmModalIcon">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="font-bold text-sm text-slate-800" id="confirmModalTitle">ยืนยันการทำรายการ</h3>
+                <p class="text-xs text-slate-500" id="confirmModalDesc">คุณแน่ใจหรือไม่?</p>
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button type="button" onclick="closeConfirmModal(false)" id="confirmCancelBtn" class="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">
+                        ยกเลิก
+                    </button>
+                    <button type="button" onclick="closeConfirmModal(true)" id="confirmModalActionBtn" class="py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs transition shadow-xs">
+                        ตกลง
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification Box -->
+        <div id="toastNotification" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs px-4 py-2.5 rounded-full shadow-lg pointer-events-none opacity-0 transition-opacity duration-300 flex items-center gap-2 max-w-[85vw]">
+            <i class="fa-solid fa-circle-check text-emerald-400" id="toastIcon"></i>
+            <span id="toastMessage">แจ้งเตือน</span>
+        </div>
+
+    </div>
+
+    <script>
+        // Storage keys
+        const STORAGE_KEY_SETTINGS = 'momfit_settings';
+        const STORAGE_KEY_LOGS = 'momfit_logs';
+        const STORAGE_KEY_THEME = 'momfit_theme';
+        const STORAGE_KEY_TONE = 'momfit_tone';
+        const STORAGE_KEY_WATER = 'momfit_daily_water';
+        const STORAGE_KEY_LANG = 'momfit_lang';
+        const STORAGE_KEY_WALLPAPER = 'momfit_custom_wallpaper';
+        const STORAGE_KEY_WALLPAPER_OPACITY = 'momfit_wallpaper_opacity';
+
+        // Full Bilingual Translation Dictionary
+        const i18n = {
+            th: {
+                flag: '🇹🇭',
+                langLabel: 'TH / EN',
+                headerSub: (m) => `ภารกิจ ${m} เดือนเปลี่ยนหุ่น 💖`,
+                headerTitle: 'MomFit สุขภาพดี',
+                streakUnit: 'วันติดกัน',
+                guideBannerTitle: 'วิธีใช้สำหรับคุณแม่ (3 ขั้นตอน)',
+                guideBannerSub: 'อ่านง่าย เข้าใจไวใน 1 นาที',
+                guideBannerBtn: 'ดูวิธีใช้',
+                themeTitle: 'ธีมสี & ภาพพื้นหลัง',
+                themeSub: 'เลือกสีสันที่ชอบหรือใส่รูปภาพที่คุณแม่ประทับใจ',
+                themeSwatchesLabel: 'เลือกโทนสีประจำตัว',
+                wallpaperStatus: 'รูปพื้นหลังส่วนตัว',
+                wallpaperHint: 'อัปโหลดรูปเพื่อใช้เป็นภาพพื้นหลัง',
+                uploadWallpaperText: 'เลือกรูป',
+                wallpaperOpacityLabel: 'ความโปร่งแสงของภาพพื้นหลัง',
+                wallpaperOpacityHint: 'เลื่อนเพื่อปรับให้ภาพจางลง ช่วยให้อ่านตัวหนังสือและตัวเลขได้ชัดเจนขึ้น',
+                progressTotal: 'ความคืบหน้ารวม',
+                goalTargetSub: (kg) => `(เป้าหมายลด ${kg} กก.)`,
+                latestWeight: 'ชั่งล่าสุด',
+                weightLost: 'ลดไปแล้ว',
+                targetWeight: 'เป้าหมาย',
+                timeRemaining: 'เหลือเวลาอีก:',
+                daysUnit: 'วัน',
+                unitKg: 'กก.',
+                adjustGoal: 'ปรับเป้าหมาย',
+                lineShareTitle: 'ส่งผลงานวันนี้ให้ลูกดู',
+                lineShareSub: 'แชร์อวดหุ่นสวยเข้า LINE ใน 1 คลิก',
+                lineShareBtn: 'ส่ง LINE',
+                waterTitle: 'ดื่มน้ำวันนี้ (เป้าหมาย 2 ลิตร)',
+                waterSub: 'แตะที่แก้วเมื่อดื่มครบ (แก้วละ ~250 มล.)',
+                waterUnit: 'แก้ว',
+                badgeTitle: 'เหรียญรางวัลความสำเร็จ',
+                tipTitle: 'คำแนะนำวันนี้:',
+                chartTitle: 'กราฟแนวโน้มน้ำหนัก',
+                chartBadge: 'บันทึกล่าสุด',
+                recentTitle: 'ออกกำลังกายล่าสุด',
+                viewAll: 'ดูทั้งหมด',
+                noData: 'ยังไม่มีข้อมูลบันทึก',
+                navHome: 'หน้าหลัก',
+                navLog: 'บันทึกวันนี้',
+                navHistory: 'ประวัติ',
+                navSettings: 'ตั้งค่า',
+                logTitle: 'บันทึกข้อมูลประจำวัน',
+                logSub: 'จดง่ายๆ วันละ 1 นาที เพื่อหุ่นสวยสุขภาพดี',
+                logDateLabel: 'วันที่บันทึก',
+                logWeightLabel: 'น้ำหนักชั่งเช้านี้ (กก.)',
+                logWaistLabel: 'รอบเอว (เซนติเมตร)',
+                logWaistHint: '* วัดสัปดาห์ละครั้งก็ได้',
+                logWaistNote: '💡 บอดี้เวทจะช่วยให้เอวคอดลง แม้น้ำหนักบนตาชั่งจะยังไม่ลด',
+                logWorkoutLabel: 'กิจกรรมวันนี้',
+                workJumprope: 'กระโดดเชือก',
+                workBodyweight: 'บอดี้เวท',
+                workOther: 'กิจกรรมอื่นๆ',
+                workRest: 'วันพักผ่อน',
+                detailPlaceholderRope: 'เช่น กระโดด 1,000 ครั้ง (20 นาที)',
+                detailPlaceholderBody: 'เช่น สควอท 3 เซ็ต + แพลงก์ 1 นาที',
+                detailPlaceholderOther: 'เช่น เดินเร็ว 40 นาที, ปั่นจักรยาน, ว่ายน้ำ',
+                logDetailLabel: 'รายละเอียดกิจกรรม',
+                logMoodLabel: 'ความรู้สึกวันนี้',
+                moodGreat: '🤩 สบายมาก',
+                moodGood: '😊 กำลังดี',
+                moodTired: '💦 เหนื่อยสู้',
+                logNoteLabel: 'บันทึกช่วยจำ (ไม่ใส่ก็ได้)',
+                logSaveBtn: 'บันทึกข้อมูลวันนี้',
+                logEditBtn: 'บันทึกการแก้ไข',
+                editAlertText: 'กำลังแก้ไขข้อมูลย้อนหลัง',
+                cancelEditBtn: 'ยกเลิก',
+                historyTitle: 'ประวัติการบันทึกทั้งหมด',
+                settingsTitle: 'ตั้งค่าเป้าหมายลดน้ำหนัก',
+                settingsSub: 'ปรับเปลี่ยนน้ำหนักตั้งต้นและเป้าหมายตามสะดวก',
+                startWeightLabel: 'น้ำหนักเริ่มต้น (กก.)',
+                targetWeightLabel: 'เป้าหมายน้ำหนักที่ต้องการ (กก.)',
+                targetHint: '* คุณแม่ตั้งเป้าลด 20 - 25 กิโลกรัม',
+                startDateLabel: 'วันเริ่มภารกิจ',
+                durationLabel: 'ระยะเวลาชาเลนจ์ (เดือน)',
+                durationHint: '* ปรับเปลี่ยนจำนวนเดือนได้อิสระ เช่น 3, 5, 6 เดือน',
+                toneLabel: 'คำลงท้ายของระบบ',
+                toneKha: '🌸 ค่ะ / นะคะ',
+                toneKhrab: '🌿 ครับ / นะครับ',
+                saveSettingsBtn: 'บันทึกการตั้งค่า',
+                clearDataBtn: 'เคลียร์ข้อมูลตัวอย่างทั้งหมด (พร้อมเริ่มบันทึกจริง)',
+                reloadDemoBtn: 'โหลดข้อมูลตัวอย่างกลับมาใหม่อีกครั้ง',
+                guideHeader: 'คู่มือวิธีใช้งานสำหรับคุณแม่',
+                guide1Title: 'ชั่งน้ำหนักตอนเช้าหลังเข้าห้องน้ำ',
+                guide1Desc: 'ชั่งตอนท้องว่างทุกเช้าก่อนดื่มน้ำหรือทานข้าว เพื่อตัวเลขที่แม่นยำที่สุด แล้วกดปุ่ม <strong>"บันทึกวันนี้"</strong> ด้านล่าง',
+                guide2Title: 'กดเลือกกิจกรรม & บันทึกรอบเอว',
+                guide2Desc: 'แตะเลือก <strong>🪢 กระโดดเชือก</strong>, <strong>🧘‍♀️ บอดี้เวท</strong>, <strong>🏃‍♀️ อื่นๆ</strong> หรือ <strong>💤 วันพัก</strong> และวัดรอบเอวสัปดาห์ละครั้ง',
+                guide3Title: 'เก็บเหรียญรางวัล & ส่ง LINE ให้ลูก',
+                guide3Desc: 'สะสมเหรียญรางวัลทุกกิโลที่ลดได้ ดื่มน้ำให้ครบ 8 แก้ว และกดปุ่ม <strong>"ส่ง LINE"</strong> เพื่อส่งผลงานอวดลูกได้ทุกวัน',
+                guideUnderstandBtn: 'เข้าใจแล้ว เริ่มลุยเลย! 💖',
+                shareModalHeader: 'ส่งรายงานให้ลูกดู',
+                copyShareBtn: 'คัดลอกข้อความ',
+                openLineBtn: 'เปิดแอป LINE',
+                confirmCancel: 'ยกเลิก',
+                confirmOk: 'ตกลง',
+                milestoneModalBtn: 'รับรางวัลและสู้ต่อ! 💖',
+                editBtnText: 'แก้ไข'
+            },
+            en: {
+                flag: '🇬🇧',
+                langLabel: 'EN / TH',
+                headerSub: (m) => `${m}-Month Transformation Mission 💖`,
+                headerTitle: 'MomFit Healthy',
+                streakUnit: 'Day Streak',
+                guideBannerTitle: "Mom's Quick Guide (3 Easy Steps)",
+                guideBannerSub: 'Simple & easy to follow in 1 minute',
+                guideBannerBtn: 'How to use',
+                themeTitle: "Theme Color & Wallpaper",
+                themeSub: 'Choose your signature color or personal background',
+                themeSwatchesLabel: 'Select Theme Color',
+                wallpaperStatus: 'Custom Wallpaper',
+                wallpaperHint: 'Upload photo to use as wallpaper',
+                uploadWallpaperText: 'Upload',
+                wallpaperOpacityLabel: 'Wallpaper Transparency',
+                wallpaperOpacityHint: 'Slide to make background softer for clearer text legibility',
+                progressTotal: 'Total Progress',
+                goalTargetSub: (kg) => `(Target: lose ${kg} kg)`,
+                latestWeight: 'Latest',
+                weightLost: 'Lost',
+                targetWeight: 'Target',
+                timeRemaining: 'Days remaining:',
+                daysUnit: 'days',
+                unitKg: 'kg',
+                adjustGoal: 'Edit Target',
+                lineShareTitle: 'Share progress with your child',
+                lineShareSub: 'Show off your fitness journey on LINE in 1 tap',
+                lineShareBtn: 'Send LINE',
+                waterTitle: 'Daily Water Intake (Goal 2L)',
+                waterSub: 'Tap a glass after drinking (~250ml per cup)',
+                waterUnit: 'cups',
+                badgeTitle: 'Milestone Achievements',
+                tipTitle: "Today's Tip:",
+                chartTitle: 'Weight Trend Graph',
+                chartBadge: 'Latest Log',
+                recentTitle: 'Recent Workouts',
+                viewAll: 'View All',
+                noData: 'No records found',
+                navHome: 'Home',
+                navLog: 'Log Today',
+                navHistory: 'History',
+                navSettings: 'Settings',
+                logTitle: 'Daily Fitness Log',
+                logSub: 'Quick 1-minute tracking for a healthy body',
+                logDateLabel: 'Log Date',
+                logWeightLabel: 'Morning Weight (kg)',
+                logWaistLabel: 'Waist Size (cm)',
+                logWaistHint: '* Measure once a week',
+                logWaistNote: '💡 Bodyweight workouts trim your waist even if weight pauses',
+                logWorkoutLabel: "Today's Workout",
+                workJumprope: 'Jump Rope',
+                workBodyweight: 'Bodyweight',
+                workOther: 'Other Activity',
+                workRest: 'Rest Day',
+                detailPlaceholderRope: 'e.g. Jump 1,000 reps (20 mins)',
+                detailPlaceholderBody: 'e.g. 3 sets squats + 1 min plank',
+                detailPlaceholderOther: 'e.g. 40-min brisk walk, cycling, swimming',
+                logDetailLabel: 'Activity Details',
+                logMoodLabel: 'How are you feeling?',
+                moodGreat: '🤩 Great',
+                moodGood: '😊 Good',
+                moodTired: '💦 Pushing through',
+                logNoteLabel: 'Notes (Optional)',
+                logSaveBtn: 'Save Daily Log',
+                logEditBtn: 'Save Changes',
+                editAlertText: 'Editing past record',
+                cancelEditBtn: 'Cancel',
+                historyTitle: 'All Activity History',
+                settingsTitle: 'Weight Loss Goal Settings',
+                settingsSub: 'Adjust starting weight and milestones anytime',
+                startWeightLabel: 'Starting Weight (kg)',
+                targetWeightLabel: 'Target Weight (kg)',
+                targetHint: "* Mom's goal is to lose 20 - 25 kg",
+                startDateLabel: 'Challenge Start Date',
+                durationLabel: 'Challenge Duration (Months)',
+                durationHint: '* Adjust freely e.g. 3, 5, 6 months',
+                toneLabel: 'Polite Ending Tone',
+                toneKha: '🌸 Polite (ค่ะ / Kha)',
+                toneKhrab: '🌿 Polite (ครับ / Khrab)',
+                saveSettingsBtn: 'Save Settings',
+                clearDataBtn: 'Clear Demo Data (Ready for real tracking)',
+                reloadDemoBtn: 'Reload Demo Sample Data',
+                guideHeader: "User Guide for Mom",
+                guide1Title: 'Weigh in morning after restroom',
+                guide1Desc: 'Weigh on an empty stomach before water or breakfast for best accuracy, then tap <strong>"Log Today"</strong>.',
+                guide2Title: 'Choose workout & measure waist',
+                guide2Desc: 'Tap <strong>🪢 Jump Rope</strong>, <strong>🧘‍♀️ Bodyweight</strong>, <strong>🏃‍♀️ Other</strong> or <strong>💤 Rest Day</strong>, and track waist weekly.',
+                guide3Title: 'Earn badges & share to LINE',
+                guide3Desc: 'Unlock milestone badges for each kg lost, drink 8 glasses of water, and tap <strong>"Send LINE"</strong> to cheer with your child.',
+                guideUnderstandBtn: "Got it, let's go! 💖",
+                shareModalHeader: 'Share Report with Child',
+                copyShareBtn: 'Copy Message',
+                openLineBtn: 'Open LINE App',
+                confirmCancel: 'Cancel',
+                confirmOk: 'Confirm',
+                milestoneModalBtn: "Claim & Keep Going! 💖",
+                editBtnText: 'Edit'
+            }
+        };
+
+        // Milestone Definitions
+        const milestoneList = [
+            { kg: 1.0, title: "ก้าวแรกคนเก่ง", titleEn: "First Step Champ", icon: "🌱", desc: "ลดสำเร็จ 1 กก. แรก จุดเริ่มต้นหุ่นสวย", descEn: "1 kg lost! The perfect start." },
+            { kg: 3.0, title: "เริ่มคล่องตัว", titleEn: "Getting Agile", icon: "✨", desc: "ลดลง 3 กก. กระโดดเชือกเบาตัวขึ้นเยอะ", descEn: "3 kg down! Light on your feet." },
+            { kg: 5.0, title: "เสื้อผ้าเริ่มหลวม", titleEn: "Clothes Loosening", icon: "👗", desc: "ลด 5 กก. เอวและสัดส่วนเริ่มเปลี่ยนชัดเจน", descEn: "5 kg lost! Noticeable waist change." },
+            { kg: 10.0, title: "พิชิตครึ่งทาง!", titleEn: "Halfway Hero!", icon: "🏅", desc: "ลด 10 กก. ผลงานสุดยอด ใครเห็นก็ทัก", descEn: "10 kg down! Halfway milestone achieved." },
+            { kg: 15.0, title: "ร่างทองมาแล้ว", titleEn: "Golden Form", icon: "💃", desc: "ลด 15 กก. หุ่นเฟิร์มกระชับ สุขภาพดีสุดๆ", descEn: "15 kg lost! Strong, lean and healthy." },
+            { kg: 20.0, title: "ซูเปอร์คุณแม่!", titleEn: "Super Mom!", icon: "👑", desc: "ลดครบ 20-25 กก. ชนะใจตัวเองสำเร็จ!", descEn: "20+ kg lost! You won your challenge!" },
+        ];
+
+        // Themes Config
+        const themeConfig = {
+            rose: { className: 'theme-rose', color: '#f43f5e', dark: '#e11d48' },
+            sky: { className: 'theme-sky', color: '#0284c7', dark: '#0369a1' },
+            emerald: { className: 'theme-emerald', color: '#059669', dark: '#047857' },
+            violet: { className: 'theme-violet', color: '#7c3aed', dark: '#6d28d9' },
+            amber: { className: 'theme-amber', color: '#d97706', dark: '#b45309' }
+        };
+
+        function getLocalDateOffset(days) {
+            const d = new Date();
+            d.setDate(d.getDate() + days);
+            return formatLocalDateString(d);
+        }
+
+        function formatLocalDateString(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const defaultSettings = {
+            startWeight: 82.0,
+            targetWeight: 60.0,
+            startDate: getLocalDateOffset(-10),
+            durationMonths: 5
+        };
+
+        const defaultSampleLogs = [
+            { id: 1, date: getLocalDateOffset(-8), weight: 82.0, waist: 92.0, workout: 'jumprope', detail: 'กระโดดเชือก 800 ครั้ง', mood: '🤩 สบายมาก', note: 'วันแรกเริ่มเบาๆ ข้อเท้ายังไหว' },
+            { id: 2, date: getLocalDateOffset(-6), weight: 81.6, waist: 91.5, workout: 'bodyweight', detail: 'สควอท + ซิทอัพ 20 นาที', mood: '😊 กำลังดี', note: 'ตึงหน้าขานิดหน่อย แต่เหงื่อออกสะใจ' },
+            { id: 3, date: getLocalDateOffset(-4), weight: 81.2, waist: 91.0, workout: 'other', detail: 'เดินเร็วรอบสวนสาธารณะ 40 นาที', mood: '🤩 สบายมาก', note: 'เดินรับลมสบายมาก ไม่เจ็บเข่า' },
+            { id: 4, date: getLocalDateOffset(-2), weight: 80.7, waist: 90.5, workout: 'bodyweight', detail: 'แพลงก์ + ยืดเหยียด 25 นาที', mood: '😊 กำลังดี', note: 'กระชับต้นแขนและหน้าท้อง' },
+            { id: 5, date: getLocalDateOffset(0), weight: 80.2, waist: 90.0, workout: 'jumprope', detail: 'กระโดดเชือก 1,500 ครั้ง', mood: '🤩 สบายมาก', note: 'ลดไปเกือบ 2 กิโลแล้ว ตัวเบามาก!' }
+        ];
+
+        // Global States
+        let settings = {};
+        let logs = [];
+        let chartInstance = null;
+        let selectedWorkoutType = 'jumprope';
+        let currentThemeKey = 'rose';
+        let editingLogId = null;
+        let currentToneEnding = 'ค่ะ';
+        let currentWaterCups = 0;
+        let currentLang = 'th';
+        let currentWallpaperOpacity = 30;
+        let pendingConfirmCallback = null;
+
+        function initApp() {
+            currentLang = localStorage.getItem(STORAGE_KEY_LANG) || 'th';
+            currentToneEnding = localStorage.getItem(STORAGE_KEY_TONE) || 'ค่ะ';
+            currentWallpaperOpacity = parseInt(localStorage.getItem(STORAGE_KEY_WALLPAPER_OPACITY) || '30', 10);
+            syncToneRadioInputs();
+
+            const savedTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'rose';
+            setAppTheme(savedTheme, false);
+
+            loadCustomWallpaper();
+
+            const savedSettings = localStorage.getItem(STORAGE_KEY_SETTINGS);
+            settings = savedSettings ? JSON.parse(savedSettings) : { ...defaultSettings };
+            if (!settings.durationMonths) settings.durationMonths = 5;
+            if (!savedSettings) {
+                localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+            }
+
+            const savedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+            logs = savedLogs ? JSON.parse(savedLogs) : [...defaultSampleLogs];
+            if (!savedLogs) {
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+            }
+
+            initTodayWater();
+
+            document.getElementById('inputDate').value = formatLocalDateString(new Date());
+
+            const latestLog = getLatestLog();
+            if (latestLog) {
+                document.getElementById('inputWeight').value = latestLog.weight;
+                if (latestLog.waist) document.getElementById('inputWaist').value = latestLog.waist;
+            } else {
+                document.getElementById('inputWeight').value = settings.startWeight;
+            }
+
+            populateSettingsInputs();
+            applyLanguage(currentLang);
+            refreshDashboard();
+            renderHistoryList();
+            updateDailyTipMessage();
+        }
+
+        // Comprehensive Tone & Polite Phrase Engine
+        function getToneHelper() {
+            const isKhrab = currentToneEnding === 'ครับ';
+            if (currentLang === 'en') {
+                return {
+                    polite: '',
+                    question: '',
+                    momAddress: ' Mom!',
+                    closing: '',
+                    congrats: 'Congratulations Mom!',
+                    greatJob: 'You unlocked a new milestone badge! Amazing job!',
+                    safeCopy: 'Copied to clipboard! Ready to paste into LINE 📋',
+                    deleteWarning: 'Are you sure you want to permanently delete this log?',
+                    clearWarning: 'This will clear all demo records and set the start date to today so you can begin real tracking!',
+                    resetWarning: 'Reload 5 demo workout and weight logs to preview the app?',
+                    deletedToast: 'Record deleted',
+                    savedSettingsToast: 'Settings saved!',
+                    savedLogToast: 'Daily log saved! Keep it up Mom!',
+                    editSavedToast: 'Changes saved!',
+                    clearedToast: 'All demo data cleared. Ready for your journey! 💖',
+                    reloadedToast: 'Sample records reloaded',
+                    wallpaperToast: 'Wallpaper updated successfully! 🖼️',
+                    wallpaperRemovedToast: 'Restored default theme background',
+                    wallpaperSizeToast: 'Image is too large. Please pick a smaller image.',
+                    langSwitchToast: 'Switched to English 🇬🇧',
+                    shareHint: 'Message to send (editable):',
+                    tip1: '• If weight doesn\'t drop some days, don\'t worry! Bodyweight builds lean muscle. Check your waist measurement too.',
+                    tip2: '• If you forgot or made a typo, go to "History" and tap [Edit] anytime.',
+                    tip3: '• Tap the TH / EN button in the top right corner to switch languages anytime.'
+                };
+            }
+            return {
+                polite: isKhrab ? 'ครับ' : 'ค่ะ',
+                question: isKhrab ? 'นะครับ' : 'นะคะ',
+                momAddress: isKhrab ? 'นะครับแม่!' : 'นะคะแม่!',
+                closing: isKhrab ? 'ครับ' : 'ค่ะ',
+                congrats: isKhrab ? 'ยินดีด้วยครับคุณแม่!' : 'ยินดีด้วยค่ะคุณแม่!',
+                greatJob: isKhrab ? 'คุณแม่ปลดล็อกเหรียญความสำเร็จใหม่แล้ว เก่งมากๆ เลยครับ' : 'คุณแม่ปลดล็อกเหรียญความสำเร็จใหม่แล้ว เก่งมากๆ เลยค่ะ',
+                safeCopy: isKhrab ? 'คัดลอกข้อความแล้ว! นำไปวางใน LINE ส่งให้ลูกได้เลยครับ 📋' : 'คัดลอกข้อความแล้ว! นำไปวางใน LINE ส่งให้ลูกได้เลยค่ะ 📋',
+                deleteWarning: isKhrab ? 'ต้องการลบข้อมูลของวันนี้ใช่หรือไม่ ข้อมูลจะหายไปถาวรครับ' : 'ต้องการลบข้อมูลของวันนี้ใช่หรือไม่ ข้อมูลจะหายไปถาวรค่ะ',
+                clearWarning: isKhrab ? 'ระบบจะล้างข้อมูลจำลองออกเพื่อเตรียมหน้ากระดานว่างให้คุณแม่เริ่มจดบันทึกจริงตั้งแต่วันนี้ครับ' : 'ระบบจะล้างข้อมูลจำลองออกเพื่อเตรียมหน้ากระดานว่างให้คุณแม่เริ่มจดบันทึกจริงตั้งแต่วันนี้ค่ะ',
+                resetWarning: isKhrab ? 'ต้องการนำข้อมูลบันทึกตัวอย่าง 5 รายการกลับมาแสดงใช่หรือไม่ครับ' : 'ต้องการนำข้อมูลบันทึกตัวอย่าง 5 รายการกลับมาแสดงใช่หรือไม่คะ',
+                deletedToast: isKhrab ? 'ลบข้อมูลเรียบร้อยแล้วครับ' : 'ลบข้อมูลเรียบร้อยแล้วค่ะ',
+                savedSettingsToast: isKhrab ? 'บันทึกการตั้งค่าเรียบร้อยแล้วครับ' : 'บันทึกการตั้งค่าเรียบร้อยแล้วค่ะ',
+                savedLogToast: isKhrab ? 'บันทึกข้อมูลเรียบร้อยแล้ว สู้ต่อไปนะครับแม่!' : 'บันทึกข้อมูลเรียบร้อยแล้ว สู้ต่อไปนะคะแม่!',
+                editSavedToast: isKhrab ? 'บันทึกการแก้ไขเรียบร้อยแล้วครับ' : 'บันทึกการแก้ไขเรียบร้อยแล้วค่ะ',
+                clearedToast: isKhrab ? 'ล้างข้อมูลเรียบร้อย พร้อมเริ่มภารกิจจริงแล้วครับ! 💖' : 'ล้างข้อมูลเรียบร้อย พร้อมเริ่มภารกิจจริงแล้วค่ะ! 💖',
+                reloadedToast: isKhrab ? 'โหลดข้อมูลตัวอย่างกลับมาแล้วครับ' : 'โหลดข้อมูลตัวอย่างกลับมาแล้วค่ะ',
+                wallpaperToast: isKhrab ? 'เปลี่ยนรูปพื้นหลังเรียบร้อยแล้วครับ 🖼️' : 'เปลี่ยนรูปพื้นหลังเรียบร้อยแล้วค่ะ 🖼️',
+                wallpaperRemovedToast: isKhrab ? 'เปลี่ยนกลับเป็นธีมปกติเรียบร้อยแล้วครับ' : 'เปลี่ยนกลับเป็นธีมปกติเรียบร้อยแล้วค่ะ',
+                wallpaperSizeToast: isKhrab ? 'ไฟล์ภาพมีขนาดใหญ่เกินไป ลองเลือกรูปอื่นดูนะครับ' : 'ไฟล์ภาพมีขนาดใหญ่เกินไป ลองเลือกรูปอื่นดูนะคะ',
+                langSwitchToast: isKhrab ? 'เปลี่ยนเป็นภาษาไทยแล้วครับ 🇹🇭' : 'เปลี่ยนเป็นภาษาไทยแล้วค่ะ 🇹🇭',
+                shareHint: isKhrab ? 'ข้อความที่จะส่ง (แก้ไขก่อนส่งได้นะครับ):' : 'ข้อความที่จะส่ง (แก้ไขก่อนส่งได้นะคะ):',
+                tip1: isKhrab ? '• หากวันไหนน้ำหนักไม่ลง ไม่ต้องตกใจนะครับ เพราะการบอดี้เวทช่วยสร้างกล้ามเนื้อกระชับสัดส่วนแทนไขมัน ให้ดูที่รอบเอวประกอบด้วยครับ' : '• หากวันไหนน้ำหนักไม่ลง ไม่ต้องตกใจนะคะ เพราะการบอดี้เวทช่วยสร้างกล้ามเนื้อกระชับสัดส่วนแทนไขมัน ให้ดูที่รอบเอวประกอบด้วยค่ะ',
+                tip2: isKhrab ? '• หากลืมจดหรือใส่น้ำหนักผิด เข้าแท็บ "ประวัติ" แล้วกดปุ่ม [แก้ไข] ย้อนหลังได้ตลอดเวลาครับ' : '• หากลืมจดหรือใส่น้ำหนักผิด เข้าแท็บ "ประวัติ" แล้วกดปุ่ม [แก้ไข] ย้อนหลังได้ตลอดเวลาค่ะ',
+                tip3: isKhrab ? '• แตะปุ่ม TH / EN ที่มุมขวาบนเพื่อสลับภาษาไทย-อังกฤษได้ตลอดเวลาครับ' : '• แตะปุ่ม TH / EN ที่มุมขวาบนเพื่อสลับภาษาไทย-อังกฤษได้ตลอดเวลาค่ะ'
+            };
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'th' ? 'en' : 'th';
+            localStorage.setItem(STORAGE_KEY_LANG, currentLang);
+            applyLanguage(currentLang);
+            refreshDashboard();
+            renderHistoryList();
+            updateDailyTipMessage();
+            const tone = getToneHelper();
+            showToast(tone.langSwitchToast, 'info');
+        }
+
+        function applyLanguage(lang) {
+            const t = i18n[lang] || i18n.th;
+            const tone = getToneHelper();
+            const months = settings.durationMonths || 5;
+
+            // Top Header
+            document.getElementById('langFlag').innerText = t.flag;
+            document.getElementById('langCodeText').innerText = t.langLabel;
+            document.getElementById('headerSubtitle').innerText = t.headerSub(months);
+            document.getElementById('headerTitle').innerText = t.headerTitle;
+            document.getElementById('streakUnitText').innerText = t.streakUnit;
+
+            // Guide Banner
+            document.getElementById('guideBannerTitle').innerText = t.guideBannerTitle;
+            document.getElementById('guideBannerSub').innerText = t.guideBannerSub;
+            document.getElementById('guideBannerBtn').innerText = t.guideBannerBtn;
+
+            // Settings - Theme & Wallpaper
+            document.getElementById('themeTitle').innerText = t.themeTitle;
+            document.getElementById('themeSub').innerText = t.themeSub;
+            document.getElementById('themeSwatchesLabel').innerText = t.themeSwatchesLabel;
+            document.getElementById('wallpaperStatusText').innerText = t.wallpaperStatus;
+            document.getElementById('wallpaperHintText').innerText = t.wallpaperHint;
+            document.getElementById('uploadWallpaperBtnText').innerText = t.uploadWallpaperText;
+            document.getElementById('wallpaperOpacityLabel').innerText = t.wallpaperOpacityLabel;
+            document.getElementById('wallpaperOpacityHint').innerText = t.wallpaperOpacityHint;
+
+            // Dashboard Metrics
+            document.getElementById('lblProgressTotal').innerText = t.progressTotal;
+            document.getElementById('adjustGoalBtn').innerText = t.adjustGoal;
+            document.getElementById('lblLatestW').innerText = t.latestWeight;
+            document.getElementById('lblLostW').innerText = t.weightLost;
+            document.getElementById('lblTargetW').innerText = t.targetWeight;
+            document.getElementById('unitLatestW').innerText = t.unitKg;
+            document.getElementById('unitLostW').innerText = t.unitKg;
+            document.getElementById('unitTargetW').innerText = t.unitKg;
+            document.getElementById('lblDaysRemain').innerText = t.timeRemaining;
+            document.getElementById('lblDaysUnit').innerText = t.daysUnit;
+
+            // LINE Card & Water
+            document.getElementById('lineShareTitle').innerText = t.lineShareTitle;
+            document.getElementById('lineShareSub').innerText = t.lineShareSub;
+            document.getElementById('lineShareBtn').querySelector('span').innerText = t.lineShareBtn;
+            document.getElementById('waterTitle').innerHTML = `<i class="fa-solid fa-droplet text-sky-500"></i> ${t.waterTitle}`;
+            document.getElementById('waterSub').innerText = t.waterSub;
+            document.getElementById('waterUnitText').innerText = t.waterUnit;
+            document.getElementById('badgeTitle').innerHTML = `<i class="fa-solid fa-award text-amber-500"></i> ${t.badgeTitle}`;
+            document.getElementById('tipTitle').innerText = t.tipTitle;
+            document.getElementById('chartTitle').innerText = t.chartTitle;
+            document.getElementById('chartBadge').innerText = t.chartBadge;
+            document.getElementById('recentTitle').innerText = t.recentTitle;
+            document.getElementById('viewAllBtn').innerText = t.viewAll;
+
+            // Bottom Nav
+            document.querySelector('#nav-dashboard span').innerText = t.navHome;
+            document.querySelector('#nav-log span').innerText = t.navLog;
+            document.querySelector('#nav-history span').innerText = t.navHistory;
+            document.querySelector('#nav-settings span').innerText = t.navSettings;
+
+            // Log Form
+            document.getElementById('logTitle').innerText = t.logTitle;
+            document.getElementById('logSub').innerText = t.logSub;
+            document.getElementById('logDateLabel').innerText = t.logDateLabel;
+            document.getElementById('logWeightLabel').innerText = t.logWeightLabel;
+            document.getElementById('logWaistLabel').innerText = t.logWaistLabel;
+            document.getElementById('logWaistHint').innerText = t.logWaistHint;
+            document.getElementById('logWaistNote').innerText = t.logWaistNote;
+            document.getElementById('logWorkoutLabel').innerText = t.logWorkoutLabel;
+            document.getElementById('workJumpropeText').innerText = t.workJumprope;
+            document.getElementById('workBodyweightText').innerText = t.workBodyweight;
+            document.getElementById('workOtherText').innerText = t.workOther;
+            document.getElementById('workRestText').innerText = t.workRest;
+            document.getElementById('logDetailLabel').innerText = t.logDetailLabel;
+            document.getElementById('logMoodLabel').innerText = t.logMoodLabel;
+            document.getElementById('moodGreatText').innerText = t.moodGreat;
+            document.getElementById('moodGoodText').innerText = t.moodGood;
+            document.getElementById('moodTiredText').innerText = t.moodTired;
+            document.getElementById('logNoteLabel').innerText = t.logNoteLabel;
+            document.getElementById('saveLogButtonText').innerText = editingLogId ? t.logEditBtn : t.logSaveBtn;
+            document.getElementById('editAlertText').innerText = t.editAlertText;
+            document.getElementById('cancelEditBtn').innerText = t.cancelEditBtn;
+
+            // History & Settings
+            document.getElementById('historyTitle').innerText = t.historyTitle;
+            document.getElementById('settingsTitle').innerText = t.settingsTitle;
+            document.getElementById('settingsSub').innerText = t.settingsSub;
+            document.getElementById('startWeightLabel').innerText = t.startWeightLabel;
+            document.getElementById('targetWeightLabel').innerText = t.targetWeightLabel;
+            document.getElementById('targetHint').innerText = t.targetHint;
+            document.getElementById('startDateLabel').innerText = t.startDateLabel;
+            document.getElementById('durationLabel').innerText = t.durationLabel;
+            document.getElementById('durationHint').innerText = t.durationHint;
+            document.getElementById('toneLabel').innerText = t.toneLabel;
+            document.getElementById('toneKhaText').innerText = t.toneKha;
+            document.getElementById('toneKhrabText').innerText = t.toneKhrab;
+            document.getElementById('saveSettingsBtn').innerText = t.saveSettingsBtn;
+            document.getElementById('clearDataBtn').innerText = t.clearDataBtn;
+            document.getElementById('reloadDemoBtn').innerText = t.reloadDemoBtn;
+
+            // Modals & Dynamic Tone in Guide
+            document.getElementById('guideModalHeader').innerText = t.guideHeader;
+            document.getElementById('guideStep1Title').innerText = t.guide1Title;
+            document.getElementById('guideStep1Desc').innerHTML = t.guide1Desc;
+            document.getElementById('guideStep2Title').innerText = t.guide2Title;
+            document.getElementById('guideStep2Desc').innerHTML = t.guide2Desc;
+            document.getElementById('guideStep3Title').innerText = t.guide3Title;
+            document.getElementById('guideStep3Desc').innerHTML = t.guide3Desc;
+            document.getElementById('guideTipText1').innerText = tone.tip1;
+            document.getElementById('guideTipText2').innerText = tone.tip2;
+            document.getElementById('guideTipText3').innerText = tone.tip3;
+            document.getElementById('guideCloseBtn').innerText = t.guideUnderstandBtn;
+
+            // Share Modal
+            document.getElementById('shareModalHeader').innerText = t.shareModalHeader;
+            document.getElementById('shareModalLabel').innerText = tone.shareHint;
+            document.getElementById('copyShareBtnText').innerText = t.copyShareBtn;
+            document.getElementById('openLineAppBtnText').innerText = t.openLineBtn;
+
+            // Confirm Dialog
+            document.getElementById('confirmCancelBtn').innerText = t.confirmCancel;
+            document.getElementById('confirmModalActionBtn').innerText = t.confirmOk;
+            document.getElementById('milestoneModalCloseBtn').innerText = t.milestoneModalBtn;
+
+            updateWorkoutPlaceholder();
+        }
+
+        function handleWallpaperSelect(e) {
+            const file = e.target.files[0];
+            const tone = getToneHelper();
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxDim = 1200;
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height && width > maxDim) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    } else if (height > maxDim) {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
+                    try {
+                        localStorage.setItem(STORAGE_KEY_WALLPAPER, compressedBase64);
+                        applyWallpaper(compressedBase64, currentWallpaperOpacity);
+                        showToast(tone.wallpaperToast, 'success');
+                    } catch (err) {
+                        showToast(tone.wallpaperSizeToast, 'warn');
+                    }
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+
+        function loadCustomWallpaper() {
+            const savedWallpaper = localStorage.getItem(STORAGE_KEY_WALLPAPER);
+            if (savedWallpaper) {
+                applyWallpaper(savedWallpaper, currentWallpaperOpacity);
+            }
+        }
+
+        function applyWallpaper(dataUrl, opacityValue) {
+            const backdrop = document.getElementById('wallpaperBackdrop');
+            const overlay = document.getElementById('wallpaperOverlay');
+            const removeBtn = document.getElementById('removeWallpaperBtn');
+            const opacityContainer = document.getElementById('wallpaperOpacityContainer');
+            const opacityInput = document.getElementById('wallpaperOpacityInput');
+            const opacityText = document.getElementById('wallpaperOpacityValueText');
+
+            if (backdrop && overlay) {
+                backdrop.style.backgroundImage = `url('${dataUrl}')`;
+                backdrop.style.opacity = (opacityValue / 100).toString();
+                backdrop.classList.remove('hidden');
+                overlay.classList.remove('hidden');
+            }
+            if (removeBtn) removeBtn.classList.remove('hidden');
+            if (opacityContainer) opacityContainer.classList.remove('hidden');
+            if (opacityInput) opacityInput.value = opacityValue;
+            if (opacityText) opacityText.innerText = `${opacityValue}%`;
+        }
+
+        function handleWallpaperOpacityChange(val) {
+            currentWallpaperOpacity = parseInt(val, 10);
+            localStorage.setItem(STORAGE_KEY_WALLPAPER_OPACITY, currentWallpaperOpacity);
+            const backdrop = document.getElementById('wallpaperBackdrop');
+            const opacityText = document.getElementById('wallpaperOpacityValueText');
+            if (backdrop) backdrop.style.opacity = (currentWallpaperOpacity / 100).toString();
+            if (opacityText) opacityText.innerText = `${currentWallpaperOpacity}%`;
+        }
+
+        function removeWallpaper() {
+            localStorage.removeItem(STORAGE_KEY_WALLPAPER);
+            const backdrop = document.getElementById('wallpaperBackdrop');
+            const overlay = document.getElementById('wallpaperOverlay');
+            const removeBtn = document.getElementById('removeWallpaperBtn');
+            const opacityContainer = document.getElementById('wallpaperOpacityContainer');
+
+            if (backdrop) {
+                backdrop.style.backgroundImage = 'none';
+                backdrop.classList.add('hidden');
+            }
+            if (overlay) overlay.classList.add('hidden');
+            if (removeBtn) removeBtn.classList.add('hidden');
+            if (opacityContainer) opacityContainer.classList.add('hidden');
+
+            const tone = getToneHelper();
+            showToast(tone.wallpaperRemovedToast, 'info');
+        }
+
+        function setAppTheme(themeKey, showFeedback = true) {
+            if (!themeConfig[themeKey]) return;
+            currentThemeKey = themeKey;
+            localStorage.setItem(STORAGE_KEY_THEME, themeKey);
+
+            const container = document.getElementById('appContainer');
+            Object.values(themeConfig).forEach(t => container.classList.remove(t.className));
+            container.classList.add(themeConfig[themeKey].className);
+
+            // Update Theme Swatches Rings in Settings
+            Object.keys(themeConfig).forEach(key => {
+                const btn = document.getElementById(`themeBtn-${key}`);
+                if (btn) {
+                    if (key === themeKey) {
+                        btn.classList.remove('ring-transparent');
+                        btn.classList.add('ring-slate-800', 'scale-110');
+                    } else {
+                        btn.classList.remove('ring-slate-800', 'scale-110');
+                        btn.classList.add('ring-transparent');
+                    }
+                }
+            });
+
+            if (chartInstance) updateWeightChart();
+            if (showFeedback) {
+                const tone = getToneHelper();
+                showToast(currentLang === 'en' ? 'Theme updated! 🎨' : `เปลี่ยนธีมสีเรียบร้อยแล้ว${tone.polite} 🎨`, 'success');
+            }
+        }
+
+        function handleToneChange(newTone) {
+            currentToneEnding = newTone;
+            localStorage.setItem(STORAGE_KEY_TONE, newTone);
+            applyLanguage(currentLang);
+            updateDailyTipMessage();
+            renderWaterGlasses();
+            const tone = getToneHelper();
+            showToast(newTone === 'ค่ะ' ? 'ใช้คำลงท้าย "ค่ะ" แล้วค่ะ 🌸' : 'ใช้คำลงท้าย "ครับ" แล้วครับ 🌿', 'info');
+        }
+
+        function syncToneRadioInputs() {
+            const radios = document.getElementsByName('toneEnding');
+            radios.forEach(r => { r.checked = (r.value === currentToneEnding); });
+        }
+
+        function updateDailyTipMessage() {
+            const tone = getToneHelper();
+            const el = document.getElementById('dailyTipText');
+            if (!el) return;
+            el.innerText = currentLang === 'en'
+                ? `Alternate jump rope, bodyweight & walking, stay hydrated, and rest well${tone.momAddress}`
+                : `สลับวันกระโดดเชือก บอดี้เวท หรือเดินเร็ว ดื่มน้ำให้เพียงพอ พักผ่อนให้เต็มที่${tone.momAddress}`;
+        }
+
+        function refreshDashboard() {
+            const latestLog = getLatestLog();
+            const currentWeight = latestLog ? latestLog.weight : settings.startWeight;
+            const lostWeight = Math.max(0, (settings.startWeight - currentWeight)).toFixed(1);
+            const totalGoalToLose = Math.max(1, settings.startWeight - settings.targetWeight);
+            const progressPercent = Math.min(100, Math.max(0, Math.round((lostWeight / totalGoalToLose) * 100)));
+
+            const months = settings.durationMonths || 5;
+            const startDate = new Date(settings.startDate);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + parseInt(months));
+            const today = new Date();
+            const daysLeft = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+
+            const t = i18n[currentLang] || i18n.th;
+            document.getElementById('headerSubtitle').innerText = t.headerSub(months);
+            document.getElementById('percentText').innerText = `${progressPercent}%`;
+            document.getElementById('mainProgressBar').style.width = `${progressPercent}%`;
+            document.getElementById('goalTargetSubText').innerText = t.goalTargetSub(totalGoalToLose.toFixed(1));
+            document.getElementById('dashCurrentWeight').innerText = currentWeight.toFixed(1);
+            document.getElementById('dashLostWeight').innerText = lostWeight;
+            document.getElementById('dashTargetWeight').innerText = Number(settings.targetWeight).toFixed(1);
+            document.getElementById('daysRemainingText').innerText = daysLeft;
+
+            const streak = calculateStreak();
+            document.getElementById('streakCount').innerText = streak;
+
+            renderMilestones(parseFloat(lostWeight));
+            renderWaterGlasses();
+            renderRecentActivities();
+            updateWeightChart();
+        }
+
+        function calculateStreak() {
+            if (!logs || logs.length === 0) return 0;
+            const logDates = new Set(logs.map(l => l.date));
+
+            const today = new Date();
+            const todayStr = formatLocalDateString(today);
+
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatLocalDateString(yesterday);
+
+            let streak = 0;
+            let checkDate = new Date();
+
+            if (logDates.has(todayStr)) {
+                streak++;
+                checkDate = yesterday;
+            } else if (logDates.has(yesterdayStr)) {
+                streak++;
+                checkDate = new Date();
+                checkDate.setDate(checkDate.getDate() - 2);
+            } else {
+                return 0;
+            }
+
+            while (true) {
+                const dateStr = formatLocalDateString(checkDate);
+                if (logDates.has(dateStr)) {
+                    streak++;
+                    checkDate.setDate(checkDate.getDate() - 1);
+                } else {
+                    break;
+                }
+            }
+
+            return streak;
+        }
+
+        function initTodayWater() {
+            const todayStr = formatLocalDateString(new Date());
+            const stored = localStorage.getItem(`${STORAGE_KEY_WATER}_${todayStr}`);
+            currentWaterCups = stored ? parseInt(stored, 10) : 5;
+        }
+
+        function renderWaterGlasses() {
+            const container = document.getElementById('waterGlassesContainer');
+            const countText = document.getElementById('waterCupCountText');
+            const comment = document.getElementById('waterStatusComment');
+            const tone = getToneHelper();
+            const isEn = currentLang === 'en';
+
+            if (!container) return;
+            countText.innerText = currentWaterCups;
+
+            let html = '';
+            for (let i = 1; i <= 8; i++) {
+                const isFull = i <= currentWaterCups;
+                html += `
+                    <button type="button" onclick="setWaterGlass(${i})" class="flex flex-col items-center justify-center py-2 px-1 rounded-xl border transition-all active:scale-90 ${isFull ? 'bg-sky-50 border-sky-300 shadow-2xs' : 'bg-slate-50 border-slate-200 text-slate-300'}">
+                        <i class="fa-solid fa-glass-water text-base ${isFull ? 'text-sky-500' : 'text-slate-300'}"></i>
+                        <span class="text-[9px] mt-0.5 font-bold ${isFull ? 'text-sky-600' : 'text-slate-400'}">${i}</span>
+                    </button>
+                `;
+            }
+            container.innerHTML = html;
+
+            if (currentWaterCups >= 8) {
+                comment.innerHTML = isEn
+                    ? `<strong class="text-emerald-600 font-bold">🎉 Amazing! You drank 2L of water today!</strong>`
+                    : `<strong class="text-emerald-600 font-bold">🎉 ยอดเยี่ยมมาก ดื่มน้ำครบ 2 ลิตรแล้ว${tone.polite}!</strong>`;
+            } else if (currentWaterCups >= 4) {
+                comment.innerText = isEn
+                    ? `Drank ${currentWaterCups * 250} ml so far. Keep going!`
+                    : `ดื่มได้ ${currentWaterCups * 250} มล. แล้ว สู้ต่ออีกนิดจะครบ 8 แก้ว${tone.question}`;
+            } else {
+                comment.innerText = isEn
+                    ? `Sip water often after workouts to burn fat.`
+                    : `จิบน้ำบ่อยๆ หลังออกกำลังกาย ช่วยลดบวมน้ำได้ดี${tone.polite}`;
+            }
+        }
+
+        function setWaterGlass(cupNumber) {
+            const todayStr = formatLocalDateString(new Date());
+            currentWaterCups = (currentWaterCups === cupNumber) ? cupNumber - 1 : cupNumber;
+            localStorage.setItem(`${STORAGE_KEY_WATER}_${todayStr}`, currentWaterCups);
+            renderWaterGlasses();
+        }
+
+        function adjustWater(amount) {
+            const todayStr = formatLocalDateString(new Date());
+            currentWaterCups = Math.min(8, Math.max(0, currentWaterCups + amount));
+            localStorage.setItem(`${STORAGE_KEY_WATER}_${todayStr}`, currentWaterCups);
+            renderWaterGlasses();
+        }
+
+        function renderMilestones(lostKg) {
+            const container = document.getElementById('milestonesContainer');
+            const countBadge = document.getElementById('unlockedBadgesCount');
+            if (!container) return;
+
+            const isEn = currentLang === 'en';
+            let unlockedCount = 0;
+            container.innerHTML = milestoneList.map(m => {
+                const isUnlocked = lostKg >= m.kg;
+                if (isUnlocked) unlockedCount++;
+                const title = isEn ? (m.titleEn || m.title) : m.title;
+                const unitText = isEn ? `Lost ${m.kg} kg` : `ลด ${m.kg} กก.`;
+
+                return `
+                    <div class="p-2.5 rounded-xl border text-center transition flex flex-col items-center justify-center ${isUnlocked ? 'bg-amber-50/70 border-amber-200 badge-unlocked shadow-2xs' : 'bg-slate-50 border-slate-200 badge-locked'}">
+                        <span class="text-2xl mb-0.5">${m.icon}</span>
+                        <span class="text-[11px] font-bold ${isUnlocked ? 'text-amber-900' : 'text-slate-500'} block leading-tight">${title}</span>
+                        <span class="text-[9px] ${isUnlocked ? 'text-amber-700 font-semibold' : 'text-slate-400'} mt-0.5">${unitText}</span>
+                    </div>
+                `;
+            }).join('');
+
+            countBadge.innerText = isEn ? `Unlocked ${unlockedCount}/${milestoneList.length}` : `ปลดล็อก ${unlockedCount}/${milestoneList.length}`;
+        }
+
+        function checkNewMilestoneUnlocked(prevLost, newLost) {
+            const newlyUnlocked = milestoneList.find(m => prevLost < m.kg && newLost >= m.kg);
+            if (newlyUnlocked) {
+                const isEn = currentLang === 'en';
+                const tone = getToneHelper();
+                const modal = document.getElementById('milestoneModal');
+                document.getElementById('milestoneModalIcon').innerText = newlyUnlocked.icon;
+                document.getElementById('milestoneModalTitle').innerText = isEn ? `Unlocked: ${newlyUnlocked.titleEn}!` : `ปลดล็อก: ${newlyUnlocked.title}!`;
+                document.getElementById('milestoneModalDesc').innerText = isEn
+                    ? `${newlyUnlocked.descEn} (${newLost.toFixed(1)} kg lost total)`
+                    : `${newlyUnlocked.desc} (ลดสะสม ${newLost.toFixed(1)} กก.) - ${tone.greatJob}`;
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.classList.add('opacity-100');
+            }
+        }
+
+        function closeMilestoneModal() {
+            const modal = document.getElementById('milestoneModal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function openShareLineModal() {
+            const latest = getLatestLog();
+            const currentW = latest ? latest.weight : settings.startWeight;
+            const lostW = Math.max(0, settings.startWeight - currentW).toFixed(1);
+            const isEn = currentLang === 'en';
+
+            let workoutName = isEn ? 'Workout' : 'ออกกำลังกาย';
+            if (latest) {
+                if (latest.workout === 'jumprope') workoutName = isEn ? '🪢 Jump Rope' : '🪢 กระโดดเชือก';
+                else if (latest.workout === 'bodyweight') workoutName = isEn ? '🧘‍♀️ Bodyweight' : '🧘‍♀️ บอดี้เวท';
+                else if (latest.workout === 'other') workoutName = isEn ? '🏃‍♀️ Other Exercise' : '🏃‍♀️ ออกกำลังกายอื่นๆ';
+                else workoutName = isEn ? '💤 Rest Day' : '💤 วันพักผ่อน';
+            }
+
+            const detailText = latest?.detail ? ` (${latest.detail})` : '';
+            const waistText = latest?.waist ? `\n📏 ${isEn ? 'Waist:' : 'รอบเอว:'} ${latest.waist} ${isEn ? 'cm' : 'ซม.'}` : '';
+            const tone = getToneHelper();
+
+            const text = isEn 
+                ? `Mom's Daily MomFit Fitness Update 💖\n` +
+                  `📅 Date: ${latest ? latest.date : formatLocalDateString(new Date())}\n` +
+                  `⚖️ Weight: ${currentW} kg (${lostW} kg lost so far 🎉)\n` +
+                  `💪 Activity: ${workoutName}${detailText}${waistText}\n` +
+                  `💧 Water: ${currentWaterCups} cups\n` +
+                  `Feeling strong and ready for the next goal! 💖`
+                : `วันนี้แม่บันทึกสุขภาพ MomFit แล้วนะ 💖\n` +
+                  `📅 วันที่: ${formatThaiDate(latest ? latest.date : formatLocalDateString(new Date()))}\n` +
+                  `⚖️ น้ำหนัก: ${currentW} กก. (ลดสะสม ${lostW} กก. แล้ว 🎉)\n` +
+                  `💪 กิจกรรม: ${workoutName}${detailText}${waistText}\n` +
+                  `💧 ดื่มน้ำ: ${currentWaterCups} แก้ว\n` +
+                  `กำลังใจเต็มร้อย สู้เพื่อเป้าหมายต่อไป${tone.momAddress}`;
+
+            document.getElementById('shareTextInput').value = text;
+            const modal = document.getElementById('lineShareModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeShareLineModal() {
+            const modal = document.getElementById('lineShareModal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function sendDirectToLine() {
+            const text = document.getElementById('shareTextInput').value;
+            window.open(`https://line.me/R/msg/text/?${encodeURIComponent(text)}`, '_blank');
+            closeShareLineModal();
+        }
+
+        function copyShareText() {
+            const input = document.getElementById('shareTextInput');
+            input.select();
+            document.execCommand('copy');
+            const tone = getToneHelper();
+            showToast(tone.safeCopy, 'success');
+            closeShareLineModal();
+        }
+
+        function getLatestLog() {
+            if (!logs || logs.length === 0) return null;
+            return [...logs].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+        }
+
+        function updateWeightChart() {
+            const canvas = document.getElementById('weightChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const sorted = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const labels = sorted.map(item => {
+                const parts = item.date.split('-');
+                return `${parseInt(parts[2])}/${parseInt(parts[1])}`;
+            });
+            const dataPoints = sorted.map(item => item.weight);
+            const activeColor = themeConfig[currentThemeKey]?.color || '#f43f5e';
+            const activeDark = themeConfig[currentThemeKey]?.dark || '#e11d48';
+
+            if (chartInstance) chartInstance.destroy();
+            const isEn = currentLang === 'en';
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: isEn ? 'Weight (kg)' : 'น้ำหนัก (กก.)',
+                        data: dataPoints,
+                        borderColor: activeColor,
+                        backgroundColor: (context) => {
+                            const chart = context.chart;
+                            const {ctx, chartArea} = chart;
+                            if (!chartArea) return 'rgba(244, 63, 94, 0.1)';
+                            const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+                            gradient.addColorStop(0, activeColor + '33');
+                            gradient.addColorStop(1, activeColor + '00');
+                            return gradient;
+                        },
+                        borderWidth: 3,
+                        pointBackgroundColor: activeDark,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        tension: 0.35,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => ` ${context.parsed.y} ${isEn ? 'kg' : 'กก.'}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10, family: 'Prompt' } } },
+                        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10, family: 'Prompt' }, callback: (v) => v + 'k' } }
+                    }
+                }
+            });
+        }
+
+        function renderRecentActivities() {
+            const container = document.getElementById('recentActivityList');
+            const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+            const isEn = currentLang === 'en';
+
+            if (sorted.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-2">${isEn ? 'No workout logs yet' : 'ยังไม่มีข้อมูลบันทึก'}</p>`;
+                return;
+            }
+
+            container.innerHTML = sorted.map(item => {
+                let icon = '🪢';
+                let typeName = isEn ? 'Jump Rope' : 'กระโดดเชือก';
+                if (item.workout === 'bodyweight') { icon = '🧘‍♀️'; typeName = isEn ? 'Bodyweight' : 'บอดี้เวท'; }
+                else if (item.workout === 'other') { icon = '🏃‍♀️'; typeName = isEn ? 'Other' : 'อื่นๆ'; }
+                else if (item.workout === 'rest') { icon = '💤'; typeName = isEn ? 'Rest Day' : 'วันพักผ่อน'; }
+
+                const displayDate = isEn ? item.date : formatThaiDate(item.date);
+                return `
+                    <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/70">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-xl">${icon}</span>
+                            <div>
+                                <div class="text-xs font-bold text-slate-700">${typeName} <span class="font-normal text-slate-400">(${displayDate})</span></div>
+                                <div class="text-[11px] text-slate-500">${item.detail || '-'} ${item.waist ? `• ${isEn ? 'Waist' : 'เอว'} ${item.waist} ${isEn ? 'cm' : 'ซม.'}` : ''}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-700">${item.weight} ${isEn ? 'kg' : 'กก.'}</span>
+                            <span class="block text-[10px] text-slate-400">${item.mood || ''}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderHistoryList() {
+            const container = document.getElementById('fullHistoryList');
+            const countBadge = document.getElementById('totalLogCountBadge');
+            const sorted = [...logs].sort((a, b) => new Date(b.date) - new Date(a.date));
+            const isEn = currentLang === 'en';
+
+            countBadge.innerText = `${sorted.length} ${isEn ? 'records' : 'รายการ'}`;
+            if (sorted.length === 0) {
+                container.innerHTML = `<div class="text-center py-8 text-slate-400 text-sm">${isEn ? 'No logs recorded yet' : 'ยังไม่มีรายการบันทึก'}</div>`;
+                return;
+            }
+
+            container.innerHTML = sorted.map(item => {
+                let workoutEmoji = (item.workout === 'jumprope') ? (isEn ? '🪢 Rope' : '🪢 เชือก')
+                    : (item.workout === 'bodyweight') ? (isEn ? '🧘 Bodyweight' : '🧘 บอดี้เวท')
+                    : (item.workout === 'other') ? (isEn ? '🏃 Other' : '🏃 อื่นๆ')
+                    : (isEn ? '💤 Rest' : '💤 วันพัก');
+
+                const displayDate = isEn ? item.date : formatThaiDate(item.date);
+                return `
+                    <div class="p-3 bg-slate-50/90 rounded-xl border border-slate-200 flex justify-between items-start gap-2 shadow-2xs transition hover:bg-white">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs font-bold text-slate-800">${displayDate}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-white border border-slate-200 font-medium text-slate-600">${workoutEmoji}</span>
+                            </div>
+                            <div class="text-xs text-slate-600">
+                                <strong>${item.detail || '-'}</strong>
+                                ${item.waist ? `<span class="inline-block ml-1 text-[11px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md font-semibold">📏 ${isEn ? 'Waist' : 'เอว'} ${item.waist} ${isEn ? 'cm' : 'ซม.'}</span>` : ''}
+                            </div>
+                            ${item.note ? `<div class="text-[11px] text-slate-400 mt-1 italic">"${item.note}"</div>` : ''}
+                        </div>
+                        <div class="text-right flex flex-col items-end shrink-0">
+                            <span class="text-base font-bold dynamic-theme-text">${item.weight} <span class="text-[10px] font-normal text-slate-400">${isEn ? 'kg' : 'กก.'}</span></span>
+                            <div class="flex items-center gap-1 mt-1.5">
+                                <button onclick="editLogEntry(${item.id})" class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 text-[11px] font-medium flex items-center gap-1 active:scale-95 transition">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i> ${isEn ? 'Edit' : 'แก้ไข'}
+                                </button>
+                                <button onclick="deleteLogEntry(${item.id})" class="p-1 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 text-xs transition">
+                                    <i class="fa-regular fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function adjustWeightInput(amount) {
+            const input = document.getElementById('inputWeight');
+            let current = parseFloat(input.value) || settings.startWeight;
+            input.value = Math.max(30, Math.min(200, current + amount)).toFixed(1);
+        }
+
+        function adjustWaistInput(amount) {
+            const input = document.getElementById('inputWaist');
+            let current = parseFloat(input.value) || 85.0;
+            input.value = Math.max(40, Math.min(150, current + amount)).toFixed(1);
+        }
+
+        function selectWorkout(type) {
+            selectedWorkoutType = type;
+            const btnRope = document.getElementById('workoutBtn-jumprope');
+            const btnBody = document.getElementById('workoutBtn-bodyweight');
+            const btnOther = document.getElementById('workoutBtn-other');
+            const btnRest = document.getElementById('workoutBtn-rest');
+            const detailContainer = document.getElementById('workoutDetailContainer');
+
+            [btnRope, btnBody, btnOther, btnRest].forEach(btn => {
+                if (btn) btn.className = 'p-3 rounded-2xl border-2 border-slate-200 bg-white text-slate-500 flex items-center justify-center gap-2 transition';
+            });
+
+            if (type === 'jumprope') {
+                btnRope.className = 'p-3 rounded-2xl border-2 border-rose-500 bg-rose-50 text-rose-600 flex items-center justify-center gap-2 transition';
+                detailContainer.style.display = 'block';
+            } else if (type === 'bodyweight') {
+                btnBody.className = 'p-3 rounded-2xl border-2 border-indigo-500 bg-indigo-50 text-indigo-600 flex items-center justify-center gap-2 transition';
+                detailContainer.style.display = 'block';
+            } else if (type === 'other') {
+                btnOther.className = 'p-3 rounded-2xl border-2 border-emerald-500 bg-emerald-50 text-emerald-600 flex items-center justify-center gap-2 transition';
+                detailContainer.style.display = 'block';
+            } else {
+                btnRest.className = 'p-3 rounded-2xl border-2 border-amber-500 bg-amber-50 text-amber-600 flex items-center justify-center gap-2 transition';
+                detailContainer.style.display = 'none';
+            }
+
+            updateWorkoutPlaceholder();
+        }
+
+        function updateWorkoutPlaceholder() {
+            const detailInput = document.getElementById('inputWorkoutDetail');
+            const t = i18n[currentLang] || i18n.th;
+            if (!detailInput) return;
+
+            if (selectedWorkoutType === 'jumprope') {
+                detailInput.placeholder = t.detailPlaceholderRope;
+            } else if (selectedWorkoutType === 'bodyweight') {
+                detailInput.placeholder = t.detailPlaceholderBody;
+            } else if (selectedWorkoutType === 'other') {
+                detailInput.placeholder = t.detailPlaceholderOther;
+            } else {
+                detailInput.value = currentLang === 'en' ? 'Rest & muscle recovery' : 'พักผ่อนฟื้นฟูกล้ามเนื้อ';
+            }
+        }
+
+        function handleSaveLog(e) {
+            e.preventDefault();
+            const date = document.getElementById('inputDate').value;
+            const weight = parseFloat(document.getElementById('inputWeight').value);
+            const waistVal = document.getElementById('inputWaist').value;
+            const waist = waistVal ? parseFloat(waistVal) : null;
+            const defaultWorkoutName = (selectedWorkoutType === 'rest') 
+                ? (currentLang === 'en' ? 'Rest Day' : 'วันพักผ่อน')
+                : (currentLang === 'en' ? 'Workout' : 'ออกกำลังกาย');
+            const detail = document.getElementById('inputWorkoutDetail').value || defaultWorkoutName;
+            const mood = document.querySelector('input[name="mood"]:checked')?.value || '😊 กำลังดี';
+            const note = document.getElementById('inputNote').value.trim();
+
+            const tone = getToneHelper();
+            const prevLatest = getLatestLog();
+            const prevLost = prevLatest ? Math.max(0, settings.startWeight - prevLatest.weight) : 0;
+
+            if (editingLogId) {
+                const index = logs.findIndex(l => l.id === editingLogId);
+                if (index !== -1) {
+                    logs[index] = { ...logs[index], date, weight, waist, workout: selectedWorkoutType, detail, mood, note };
+                }
+                editingLogId = null;
+                document.getElementById('editModeAlert').classList.add('hidden');
+                document.getElementById('saveLogButtonText').innerText = (currentLang === 'en') ? i18n.en.logSaveBtn : i18n.th.logSaveBtn;
+                showToast(tone.editSavedToast, 'success');
+            } else {
+                const newLog = { id: Date.now(), date, weight, waist, workout: selectedWorkoutType, detail, mood, note };
+                logs.push(newLog);
+                const newLost = Math.max(0, settings.startWeight - weight);
+                checkNewMilestoneUnlocked(prevLost, newLost);
+                showToast(tone.savedLogToast, 'success');
+            }
+
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+            refreshDashboard();
+            renderHistoryList();
+            switchTab('dashboard');
+        }
+
+        function editLogEntry(id) {
+            const entry = logs.find(l => l.id === id);
+            if (!entry) return;
+            editingLogId = id;
+
+            document.getElementById('inputDate').value = entry.date;
+            document.getElementById('inputWeight').value = entry.weight;
+            document.getElementById('inputWaist').value = entry.waist || '';
+            document.getElementById('inputWorkoutDetail').value = entry.detail || '';
+            document.getElementById('inputNote').value = entry.note || '';
+
+            selectWorkout(entry.workout || 'jumprope');
+            const moodRadios = document.getElementsByName('mood');
+            moodRadios.forEach(r => { r.checked = (r.value === entry.mood); });
+
+            document.getElementById('editModeAlert').classList.remove('hidden');
+            document.getElementById('saveLogButtonText').innerText = (currentLang === 'en') ? i18n.en.logEditBtn : i18n.th.logEditBtn;
+            switchTab('log');
+        }
+
+        function cancelEditing() {
+            editingLogId = null;
+            document.getElementById('editModeAlert').classList.add('hidden');
+            document.getElementById('saveLogButtonText').innerText = (currentLang === 'en') ? i18n.en.logSaveBtn : i18n.th.logSaveBtn;
+            document.getElementById('dailyLogForm').reset();
+            document.getElementById('inputDate').value = formatLocalDateString(new Date());
+            const latest = getLatestLog();
+            if (latest) document.getElementById('inputWeight').value = latest.weight;
+        }
+
+        function deleteLogEntry(id) {
+            const tone = getToneHelper();
+            const isEn = currentLang === 'en';
+            const title = isEn ? 'Delete this entry?' : 'ลบรายการบันทึกนี้?';
+
+            openConfirmModal(title, tone.deleteWarning, () => {
+                logs = logs.filter(l => l.id !== id);
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+                refreshDashboard();
+                renderHistoryList();
+                showToast(tone.deletedToast, 'info');
+            });
+        }
+
+        function populateSettingsInputs() {
+            document.getElementById('setStartWeight').value = settings.startWeight;
+            document.getElementById('setTargetWeight').value = settings.targetWeight;
+            document.getElementById('setStartDate').value = settings.startDate;
+            document.getElementById('setDuration').value = settings.durationMonths || 5;
+        }
+
+        function handleSaveSettings(e) {
+            e.preventDefault();
+            settings.startWeight = parseFloat(document.getElementById('setStartWeight').value);
+            settings.targetWeight = parseFloat(document.getElementById('setTargetWeight').value);
+            settings.startDate = document.getElementById('setStartDate').value;
+            settings.durationMonths = parseInt(document.getElementById('setDuration').value, 10) || 5;
+
+            localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+            refreshDashboard();
+            const tone = getToneHelper();
+            showToast(tone.savedSettingsToast, 'success');
+            switchTab('dashboard');
+        }
+
+        function confirmClearDemoData() {
+            const tone = getToneHelper();
+            const isEn = currentLang === 'en';
+            const title = isEn ? 'Clear all sample data?' : 'เคลียร์ข้อมูลตัวอย่างทั้งหมด?';
+
+            openConfirmModal(title, tone.clearWarning, () => {
+                logs = [];
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+                settings.startDate = formatLocalDateString(new Date());
+                localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+
+                refreshDashboard();
+                renderHistoryList();
+                populateSettingsInputs();
+                showToast(tone.clearedToast, 'success');
+                switchTab('log');
+            });
+        }
+
+        function confirmResetDemoData() {
+            const tone = getToneHelper();
+            const isEn = currentLang === 'en';
+            const title = isEn ? 'Reload sample records?' : 'โหลดข้อมูลตัวอย่างกลับมา?';
+
+            openConfirmModal(title, tone.resetWarning, () => {
+                logs = [...defaultSampleLogs];
+                settings = { ...defaultSettings };
+                localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(logs));
+                localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+
+                refreshDashboard();
+                renderHistoryList();
+                populateSettingsInputs();
+                showToast(tone.reloadedToast, 'success');
+                switchTab('dashboard');
+            });
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'log', 'history', 'settings'].forEach(t => {
+                const el = document.getElementById(`tab-${t}`);
+                const nav = document.getElementById(`nav-${t}`);
+                if (el) el.classList.add('hidden');
+                if (nav) {
+                    nav.classList.remove('dynamic-theme-text');
+                    nav.classList.add('text-slate-400');
+                }
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.remove('text-slate-400');
+                activeNav.classList.add('dynamic-theme-text');
+            }
+            if (tabId === 'dashboard' && chartInstance) {
+                setTimeout(() => chartInstance.resize(), 100);
+            }
+        }
+
+        function openGuideModal() {
+            const modal = document.getElementById('guideModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeGuideModal() {
+            const modal = document.getElementById('guideModal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        function openConfirmModal(title, desc, callback) {
+            document.getElementById('confirmModalTitle').innerText = title;
+            document.getElementById('confirmModalDesc').innerText = desc;
+            pendingConfirmCallback = callback;
+            const modal = document.getElementById('customConfirmModal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.classList.add('opacity-100');
+        }
+
+        function closeConfirmModal(isConfirmed) {
+            const modal = document.getElementById('customConfirmModal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            if (isConfirmed && pendingConfirmCallback) {
+                pendingConfirmCallback();
+            }
+            pendingConfirmCallback = null;
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastNotification');
+            const msgEl = document.getElementById('toastMessage');
+            const iconEl = document.getElementById('toastIcon');
+
+            msgEl.innerText = message;
+            if (type === 'success') {
+                iconEl.className = 'fa-solid fa-circle-check text-emerald-400';
+            } else if (type === 'info') {
+                iconEl.className = 'fa-solid fa-circle-info text-sky-400';
+            } else {
+                iconEl.className = 'fa-solid fa-triangle-exclamation text-amber-400';
+            }
+
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2500);
+        }
+
+        function formatThaiDate(dateStr) {
+            if (!dateStr) return '';
+            const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const parts = dateStr.split('-');
+            const day = parseInt(parts[2], 10);
+            const month = months[parseInt(parts[1], 10) - 1];
+            return `${day} ${month}`;
+        }
+
+        // Initialize upon DOM load
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+        });
+    </script>
+</body>
+</html>
