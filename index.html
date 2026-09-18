@@ -291,25 +291,7 @@
                             </div>
                         </div>
 
-                        <!-- 3. Waist Measurement -->
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <label id="logWaistLabel" class="text-xs font-semibold text-slate-600">รอบเอว (เซนติเมตร)</label>
-                                <span id="logWaistHint" class="text-[10px] text-slate-400">* วัดสัปดาห์ละครั้งก็ได้</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button type="button" onclick="adjustWaistInput(-0.5)" class="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center active:scale-95 transition">-</button>
-                                <div class="relative flex-1 min-w-0">
-                                    <input type="number" id="inputWaist" step="0.5" min="40" max="150" placeholder="เช่น 85 (ไม่ใส่ก็ได้)" class="w-full text-center text-lg font-bold bg-slate-50 border border-slate-200 rounded-xl py-2 px-2 text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
-                                </div>
-                                <button type="button" onclick="adjustWaistInput(0.5)" class="w-10 h-10 shrink-0 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-base flex items-center justify-center active:scale-95 transition">+</button>
-                            </div>
-                            <p id="logWaistNote" class="text-[10px] text-indigo-600 mt-1 bg-indigo-50/70 p-1.5 rounded-lg">
-                                💡 บอดี้เวทจะช่วยให้เอวคอดลง แม้น้ำหนักบนตาชั่งจะยังไม่ลด
-                            </p>
-                        </div>
-
-                        <!-- 4. Workout Type Selector (4 Types including 'Other') -->
+                        <!-- 3. Workout Type Selector (4 Types) -->
                         <div>
                             <label id="logWorkoutLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">กิจกรรมวันนี้</label>
                             <div class="grid grid-cols-2 gap-2">
@@ -332,13 +314,66 @@
                             </div>
                         </div>
 
-                        <!-- 5. Workout Detail Input -->
-                        <div id="workoutDetailContainer">
-                            <label id="logDetailLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">รายละเอียดกิจกรรม</label>
-                            <input type="text" id="inputWorkoutDetail" placeholder="เช่น กระโดด 1,000 ครั้ง หรือ บอดี้เวท 25 นาที" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition">
+                        <!-- 4. Detailed Workout Section (What, How, Sets, Reps, Minutes) -->
+                        <div id="workoutDetailContainer" class="space-y-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80">
+                            <!-- Exercise Name / Pose with Quick Tap Chips -->
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label id="logExerciseLabel" class="text-xs font-bold text-slate-700">ท่าที่เล่น / กิจกรรม</label>
+                                    <span id="logExerciseHint" class="text-[10px] text-slate-400">แตะเพื่อเลือกท่าได้ไว</span>
+                                </div>
+                                <input type="text" id="inputExercise" placeholder="เช่น สควอท + แพลงก์ หรือ กระโดดเชือกสลับเท้า" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-rose-400 transition mb-1.5">
+                                
+                                <!-- Quick Select Chips Container -->
+                                <div id="quickExerciseChips" class="flex flex-wrap gap-1.5 pt-0.5">
+                                    <!-- Populated dynamically by JS -->
+                                </div>
+                            </div>
+
+                            <!-- 3-Column Metrics: Sets, Reps, Minutes -->
+                            <div>
+                                <label id="logMetricsLabel" class="text-xs font-bold text-slate-700 block mb-1.5">สถิติการออกกำลังกาย</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <!-- Sets Input -->
+                                    <div class="bg-white p-2 rounded-xl border border-slate-200 text-center shadow-2xs">
+                                        <span id="lblSets" class="text-[10px] font-semibold text-slate-500 block mb-1">กี่เซต (Sets)</span>
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button type="button" onclick="adjustMetricInput('inputSets', -1, 0)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold active:scale-90">-</button>
+                                            <input type="number" id="inputSets" min="0" max="50" placeholder="0" class="w-10 text-center font-bold text-sm text-slate-800 bg-transparent focus:outline-none">
+                                            <button type="button" onclick="adjustMetricInput('inputSets', 1, 0)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold active:scale-90">+</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reps / Counts Input -->
+                                    <div class="bg-white p-2 rounded-xl border border-slate-200 text-center shadow-2xs">
+                                        <span id="lblReps" class="text-[10px] font-semibold text-slate-500 block mb-1">กี่ครั้ง (Reps)</span>
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button type="button" onclick="adjustMetricInput('inputReps', -10, 0)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold active:scale-90">-10</button>
+                                            <input type="number" id="inputReps" min="0" max="10000" placeholder="0" class="w-12 text-center font-bold text-sm text-slate-800 bg-transparent focus:outline-none">
+                                            <button type="button" onclick="adjustMetricInput('inputReps', 10, 0)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold active:scale-90">+10</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Minutes Input -->
+                                    <div class="bg-white p-2 rounded-xl border border-slate-200 text-center shadow-2xs">
+                                        <span id="lblMins" class="text-[10px] font-semibold text-slate-500 block mb-1">กี่นาที (Mins)</span>
+                                        <div class="flex items-center justify-center gap-1">
+                                            <button type="button" onclick="adjustMetricInput('inputMinutes', -5, 0)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold active:scale-90">-5</button>
+                                            <input type="number" id="inputMinutes" min="0" max="300" placeholder="0" class="w-10 text-center font-bold text-sm text-slate-800 bg-transparent focus:outline-none">
+                                            <button type="button" onclick="adjustMetricInput('inputMinutes', 5, 0)" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold active:scale-90">+5</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- How-To / Technique / Form Details Input -->
+                            <div>
+                                <label id="logDetailLabel" class="text-xs font-bold text-slate-700 block mb-1">วิธีทำ / รายละเอียดท่า</label>
+                                <textarea id="inputWorkoutDetail" rows="2" placeholder="เช่น สควอทก้นลึกหลังตรง พักเซตละ 30 วินาที, แพลงก์แขนตรงเกร็งหน้าท้อง" class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-400 transition leading-relaxed"></textarea>
+                            </div>
                         </div>
 
-                        <!-- 6. Mood / Feelings -->
+                        <!-- 5. Mood / Feelings -->
                         <div>
                             <label id="logMoodLabel" class="text-xs font-semibold text-slate-600 block mb-1.5">ความรู้สึกวันนี้</label>
                             <div class="grid grid-cols-3 gap-2 text-center text-xs">
@@ -544,8 +579,8 @@
                     <div class="flex gap-3 items-start bg-indigo-50/70 p-3.5 rounded-2xl border border-indigo-100">
                         <div class="w-7 h-7 rounded-xl bg-indigo-500 text-white font-bold flex items-center justify-center shrink-0 shadow-xs">2</div>
                         <div>
-                            <strong id="guideStep2Title" class="text-slate-800 text-xs block mb-0.5 font-bold">กดเลือกกิจกรรม & บันทึกรอบเอว</strong>
-                            <span id="guideStep2Desc">แตะเลือก <strong>🪢 กระโดดเชือก</strong>, <strong>🧘‍♀️ บอดี้เวท</strong>, <strong>🏃‍♀️ อื่นๆ</strong> หรือ <strong>💤 วันพัก</strong> และวัดรอบเอวสัปดาห์ละครั้ง</span>
+                            <strong id="guideStep2Title" class="text-slate-800 text-xs block mb-0.5 font-bold">บันทึกท่าออกกำลังกาย & จำนวนเซต/ครั้ง/นาที</strong>
+                            <span id="guideStep2Desc">เลือกกิจกรรม แตะเลือกท่า เช่น <strong>สควอท, แพลงก์, ลันจ์, เชือกสลับเท้า</strong> พร้อมจดจำนวนเซต กี่ครั้ง กี่นาที และวิธีทำได้ละเอียด</span>
                         </div>
                     </div>
 
@@ -563,7 +598,7 @@
                         <p id="guideTipHeader" class="font-bold text-amber-900 mb-1.5 flex items-center gap-1.5">
                             <i class="fa-solid fa-lightbulb text-amber-500"></i> ทริกสำคัญที่คุณแม่ควรรู้:
                         </p>
-                        <p id="guideTipText1" class="text-[11px] text-amber-800 leading-relaxed">• หากวันไหนน้ำหนักไม่ลง ไม่ต้องตกใจนะคะ เพราะการบอดี้เวทช่วยสร้างกล้ามเนื้อกระชับสัดส่วนแทนไขมัน ให้ดูที่รอบเอวประกอบด้วยค่ะ</p>
+                        <p id="guideTipText1" class="text-[11px] text-amber-800 leading-relaxed">• โฟกัสที่ฟอร์มท่าที่ถูกต้อง ไม่ต้องรีบทำจนเหนื่อยเกินไป การบันทึกจำนวนเซตและครั้งจะช่วยให้เห็นพัฒนาการความแข็งแรงชัดเจนค่ะ</p>
                         <p id="guideTipText2" class="text-[11px] text-amber-800 leading-relaxed mt-1.5">• หากลืมจดหรือใส่น้ำหนักผิด เข้าแท็บ <strong>"ประวัติ"</strong> แล้วกดปุ่ม <strong>[แก้ไข]</strong> ย้อนหลังได้ตลอดเวลา</p>
                         <p id="guideTipText3" class="text-[11px] text-amber-800 leading-relaxed mt-1.5">• แตะปุ่ม <strong>TH / EN</strong> ที่มุมขวาบนเพื่อสลับภาษาไทย-อังกฤษได้ตลอดเวลาค่ะ</p>
                     </div>
@@ -701,18 +736,22 @@
                 logSub: 'จดง่ายๆ วันละ 1 นาที เพื่อหุ่นสวยสุขภาพดี',
                 logDateLabel: 'วันที่บันทึก',
                 logWeightLabel: 'น้ำหนักชั่งเช้านี้ (กก.)',
-                logWaistLabel: 'รอบเอว (เซนติเมตร)',
-                logWaistHint: '* วัดสัปดาห์ละครั้งก็ได้',
-                logWaistNote: '💡 บอดี้เวทจะช่วยให้เอวคอดลง แม้น้ำหนักบนตาชั่งจะยังไม่ลด',
                 logWorkoutLabel: 'กิจกรรมวันนี้',
+                logExerciseLabel: 'ท่าที่เล่น / กิจกรรม',
+                logExerciseHint: 'แตะเพื่อเลือกท่าได้ไว',
+                logExercisePlaceholder: 'เช่น สควอท + แพลงก์ หรือ กระโดดเชือกสลับเท้า',
+                logMetricsLabel: 'สถิติการออกกำลังกาย',
+                lblSets: 'กี่เซต (Sets)',
+                lblReps: 'กี่ครั้ง (Reps)',
+                lblMins: 'กี่นาที (Mins)',
                 workJumprope: 'กระโดดเชือก',
                 workBodyweight: 'บอดี้เวท',
                 workOther: 'กิจกรรมอื่นๆ',
                 workRest: 'วันพักผ่อน',
-                detailPlaceholderRope: 'เช่น กระโดด 1,000 ครั้ง (20 นาที)',
-                detailPlaceholderBody: 'เช่น สควอท 3 เซ็ต + แพลงก์ 1 นาที',
-                detailPlaceholderOther: 'เช่น เดินเร็ว 40 นาที, ปั่นจักรยาน, ว่ายน้ำ',
-                logDetailLabel: 'รายละเอียดกิจกรรม',
+                detailPlaceholderRope: 'เช่น กระโดดสลับเท้า พักเซตละ 40 วินาที ลงด้วยปลายเท้าเบาๆ',
+                detailPlaceholderBody: 'เช่น สควอทก้นลึกหลังตรง, แพลงก์เกร็งหน้าท้อง ไม่แอ่นหลัง',
+                detailPlaceholderOther: 'เช่น เดินเร็วรอบสวนสาธารณะ แกว่งแขนต่อเนื่อง ไม่เจ็บเข่า',
+                logDetailLabel: 'วิธีทำ / รายละเอียดท่า',
                 logMoodLabel: 'ความรู้สึกวันนี้',
                 moodGreat: '🤩 สบายมาก',
                 moodGood: '😊 กำลังดี',
@@ -740,8 +779,8 @@
                 guideHeader: 'คู่มือวิธีใช้งานสำหรับคุณแม่',
                 guide1Title: 'ชั่งน้ำหนักตอนเช้าหลังเข้าห้องน้ำ',
                 guide1Desc: 'ชั่งตอนท้องว่างทุกเช้าก่อนดื่มน้ำหรือทานข้าว เพื่อตัวเลขที่แม่นยำที่สุด แล้วกดปุ่ม <strong>"บันทึกวันนี้"</strong> ด้านล่าง',
-                guide2Title: 'กดเลือกกิจกรรม & บันทึกรอบเอว',
-                guide2Desc: 'แตะเลือก <strong>🪢 กระโดดเชือก</strong>, <strong>🧘‍♀️ บอดี้เวท</strong>, <strong>🏃‍♀️ อื่นๆ</strong> หรือ <strong>💤 วันพัก</strong> และวัดรอบเอวสัปดาห์ละครั้ง',
+                guide2Title: 'บันทึกท่าออกกำลังกาย & จำนวนเซต/ครั้ง/นาที',
+                guide2Desc: 'เลือกกิจกรรม แตะเลือกท่า เช่น <strong>สควอท, แพลงก์, ลันจ์, เชือกสลับเท้า</strong> พร้อมจดจำนวนเซต กี่ครั้ง กี่นาที และวิธีทำได้ละเอียด',
                 guide3Title: 'เก็บเหรียญรางวัล & ส่ง LINE ให้ลูก',
                 guide3Desc: 'สะสมเหรียญรางวัลทุกกิโลที่ลดได้ ดื่มน้ำให้ครบ 8 แก้ว และกดปุ่ม <strong>"ส่ง LINE"</strong> เพื่อส่งผลงานอวดลูกได้ทุกวัน',
                 guideUnderstandBtn: 'เข้าใจแล้ว เริ่มลุยเลย! 💖',
@@ -800,18 +839,22 @@
                 logSub: 'Quick 1-minute tracking for a healthy body',
                 logDateLabel: 'Log Date',
                 logWeightLabel: 'Morning Weight (kg)',
-                logWaistLabel: 'Waist Size (cm)',
-                logWaistHint: '* Measure once a week',
-                logWaistNote: '💡 Bodyweight workouts trim your waist even if weight pauses',
                 logWorkoutLabel: "Today's Workout",
+                logExerciseLabel: 'Exercise Name / Poses',
+                logExerciseHint: 'Tap to select quickly',
+                logExercisePlaceholder: 'e.g. Squats + Plank, or Jump rope alternate feet',
+                logMetricsLabel: 'Workout Metrics',
+                lblSets: 'Sets',
+                lblReps: 'Reps / Count',
+                lblMins: 'Minutes',
                 workJumprope: 'Jump Rope',
                 workBodyweight: 'Bodyweight',
                 workOther: 'Other Activity',
                 workRest: 'Rest Day',
-                detailPlaceholderRope: 'e.g. Jump 1,000 reps (20 mins)',
-                detailPlaceholderBody: 'e.g. 3 sets squats + 1 min plank',
-                detailPlaceholderOther: 'e.g. 40-min brisk walk, cycling, swimming',
-                logDetailLabel: 'Activity Details',
+                detailPlaceholderRope: 'e.g. Alternate foot jump, 40s rest between sets, soft landing on balls of feet',
+                detailPlaceholderBody: 'e.g. Deep squats keeping back straight, forearm plank engaging core',
+                detailPlaceholderOther: 'e.g. Brisk walking around park, swinging arms continuously, joint friendly',
+                logDetailLabel: 'How-to / Technique & Form Details',
                 logMoodLabel: 'How are you feeling?',
                 moodGreat: '🤩 Great',
                 moodGood: '😊 Good',
@@ -839,8 +882,8 @@
                 guideHeader: "User Guide for Mom",
                 guide1Title: 'Weigh in morning after restroom',
                 guide1Desc: 'Weigh on an empty stomach before water or breakfast for best accuracy, then tap <strong>"Log Today"</strong>.',
-                guide2Title: 'Choose workout & measure waist',
-                guide2Desc: 'Tap <strong>🪢 Jump Rope</strong>, <strong>🧘‍♀️ Bodyweight</strong>, <strong>🏃‍♀️ Other</strong> or <strong>💤 Rest Day</strong>, and track waist weekly.',
+                guide2Title: 'Track exercises & sets/reps/minutes',
+                guide2Desc: 'Select activity, tap poses like <strong>Squats, Plank, Lunges</strong>, and log sets, reps, minutes and form notes in detail.',
                 guide3Title: 'Earn badges & share to LINE',
                 guide3Desc: 'Unlock milestone badges for each kg lost, drink 8 glasses of water, and tap <strong>"Send LINE"</strong> to cheer with your child.',
                 guideUnderstandBtn: "Got it, let's go! 💖",
@@ -854,11 +897,36 @@
             }
         };
 
+        // Quick Preset Exercises for Mom
+        const exercisePresets = {
+            jumprope: [
+                { th: 'กระโดดสองเท้า', en: 'Basic Bounce' },
+                { th: 'กระโดดสลับเท้า', en: 'Alternate Foot' },
+                { th: 'วิ่งยกเข่า', en: 'High Knees' },
+                { th: 'กระโดดสปีดเร็ว', en: 'Speed Jump' }
+            ],
+            bodyweight: [
+                { th: 'สควอท', en: 'Squats' },
+                { th: 'แพลงก์', en: 'Plank' },
+                { th: 'ลันจ์', en: 'Lunges' },
+                { th: 'ซิทอัพ / ครันช์', en: 'Sit-ups / Crunches' },
+                { th: 'วิดพื้นวางเข่า', en: 'Knee Push-ups' },
+                { th: 'ยืดเหยียดคลายกล้ามเนื้อ', en: 'Stretching' }
+            ],
+            other: [
+                { th: 'เดินเร็ว', en: 'Brisk Walk' },
+                { th: 'ปั่นจักรยาน', en: 'Cycling' },
+                { th: 'แกว่งแขนลดพุง', en: 'Arm Swings' },
+                { th: 'เต้นแอโรบิกเบาๆ', en: 'Low-impact Aerobics' }
+            ],
+            rest: []
+        };
+
         // Milestone Definitions
         const milestoneList = [
             { kg: 1.0, title: "ก้าวแรกคนเก่ง", titleEn: "First Step Champ", icon: "🌱", desc: "ลดสำเร็จ 1 กก. แรก จุดเริ่มต้นหุ่นสวย", descEn: "1 kg lost! The perfect start." },
             { kg: 3.0, title: "เริ่มคล่องตัว", titleEn: "Getting Agile", icon: "✨", desc: "ลดลง 3 กก. กระโดดเชือกเบาตัวขึ้นเยอะ", descEn: "3 kg down! Light on your feet." },
-            { kg: 5.0, title: "เสื้อผ้าเริ่มหลวม", titleEn: "Clothes Loosening", icon: "👗", desc: "ลด 5 กก. เอวและสัดส่วนเริ่มเปลี่ยนชัดเจน", descEn: "5 kg lost! Noticeable waist change." },
+            { kg: 5.0, title: "เสื้อผ้าเริ่มหลวม", titleEn: "Clothes Loosening", icon: "👗", desc: "ลด 5 กก. สัดส่วนและหุ่นเริ่มเปลี่ยนชัดเจน", descEn: "5 kg lost! Noticeable physique change." },
             { kg: 10.0, title: "พิชิตครึ่งทาง!", titleEn: "Halfway Hero!", icon: "🏅", desc: "ลด 10 กก. ผลงานสุดยอด ใครเห็นก็ทัก", descEn: "10 kg down! Halfway milestone achieved." },
             { kg: 15.0, title: "ร่างทองมาแล้ว", titleEn: "Golden Form", icon: "💃", desc: "ลด 15 กก. หุ่นเฟิร์มกระชับ สุขภาพดีสุดๆ", descEn: "15 kg lost! Strong, lean and healthy." },
             { kg: 20.0, title: "ซูเปอร์คุณแม่!", titleEn: "Super Mom!", icon: "👑", desc: "ลดครบ 20-25 กก. ชนะใจตัวเองสำเร็จ!", descEn: "20+ kg lost! You won your challenge!" },
@@ -894,11 +962,11 @@
         };
 
         const defaultSampleLogs = [
-            { id: 1, date: getLocalDateOffset(-8), weight: 82.0, waist: 92.0, workout: 'jumprope', detail: 'กระโดดเชือก 800 ครั้ง', mood: '🤩 สบายมาก', note: 'วันแรกเริ่มเบาๆ ข้อเท้ายังไหว' },
-            { id: 2, date: getLocalDateOffset(-6), weight: 81.6, waist: 91.5, workout: 'bodyweight', detail: 'สควอท + ซิทอัพ 20 นาที', mood: '😊 กำลังดี', note: 'ตึงหน้าขานิดหน่อย แต่เหงื่อออกสะใจ' },
-            { id: 3, date: getLocalDateOffset(-4), weight: 81.2, waist: 91.0, workout: 'other', detail: 'เดินเร็วรอบสวนสาธารณะ 40 นาที', mood: '🤩 สบายมาก', note: 'เดินรับลมสบายมาก ไม่เจ็บเข่า' },
-            { id: 4, date: getLocalDateOffset(-2), weight: 80.7, waist: 90.5, workout: 'bodyweight', detail: 'แพลงก์ + ยืดเหยียด 25 นาที', mood: '😊 กำลังดี', note: 'กระชับต้นแขนและหน้าท้อง' },
-            { id: 5, date: getLocalDateOffset(0), weight: 80.2, waist: 90.0, workout: 'jumprope', detail: 'กระโดดเชือก 1,500 ครั้ง', mood: '🤩 สบายมาก', note: 'ลดไปเกือบ 2 กิโลแล้ว ตัวเบามาก!' }
+            { id: 1, date: getLocalDateOffset(-8), weight: 82.0, workout: 'jumprope', exercise: 'กระโดดสองเท้า', sets: 4, reps: 200, minutes: 15, detail: 'กระโดดเชือก 800 ครั้ง พักเซตละ 40 วิ ข้อเท้ายังสบายดี', mood: '🤩 สบายมาก', note: 'วันแรกเริ่มเบาๆ ร่างกายกำลังปรับตัว' },
+            { id: 2, date: getLocalDateOffset(-6), weight: 81.6, workout: 'bodyweight', exercise: 'สควอท + แพลงก์', sets: 3, reps: 15, minutes: 20, detail: 'สควอทก้นลึก 15 ครั้ง x 3 เซต, แพลงก์ 30 วิ x 3 เซต', mood: '😊 กำลังดี', note: 'ตึงหน้าขานิดหน่อย แต่เหงื่อออกสะใจ' },
+            { id: 3, date: getLocalDateOffset(-4), weight: 81.2, workout: 'other', exercise: 'เดินเร็วรอบสวน', sets: 1, reps: 0, minutes: 40, detail: 'เดินเร็วแกว่งแขนต่อเนื่อง 40 นาที รับลมสบาย ไม่เจ็บเข่า', mood: '🤩 สบายมาก', note: 'เดินรับลมสบายมาก รู้สึกสดชื่น' },
+            { id: 4, date: getLocalDateOffset(-2), weight: 80.7, workout: 'bodyweight', exercise: 'ลันจ์ + ยืดเหยียด', sets: 3, reps: 12, minutes: 25, detail: 'ลันจ์ข้างละ 12 ครั้ง x 3 เซต เน้นเกร็งก้น และยืดเหยียดกล้ามเนื้อ', mood: '😊 กำลังดี', note: 'กระชับต้นขาและสะโพก' },
+            { id: 5, date: getLocalDateOffset(0), weight: 80.2, workout: 'jumprope', exercise: 'กระโดดสลับเท้า', sets: 5, reps: 300, minutes: 25, detail: 'กระโดดสลับเท้า 1,500 ครั้ง แบ่ง 5 เซต พักเซตละ 30 วินาที', mood: '🤩 สบายมาก', note: 'ลดไปเกือบ 2 กิโลแล้ว ตัวเบามาก!' }
         ];
 
         // Global States
@@ -945,13 +1013,13 @@
             const latestLog = getLatestLog();
             if (latestLog) {
                 document.getElementById('inputWeight').value = latestLog.weight;
-                if (latestLog.waist) document.getElementById('inputWaist').value = latestLog.waist;
             } else {
                 document.getElementById('inputWeight').value = settings.startWeight;
             }
 
             populateSettingsInputs();
             applyLanguage(currentLang);
+            renderQuickChips();
             refreshDashboard();
             renderHistoryList();
             updateDailyTipMessage();
@@ -983,7 +1051,7 @@
                     wallpaperSizeToast: 'Image is too large. Please pick a smaller image.',
                     langSwitchToast: 'Switched to English 🇬🇧',
                     shareHint: 'Message to send (editable):',
-                    tip1: '• If weight doesn\'t drop some days, don\'t worry! Bodyweight builds lean muscle. Check your waist measurement too.',
+                    tip1: '• Focus on good exercise form without rushing. Tracking sets and reps shows your true strength progress!',
                     tip2: '• If you forgot or made a typo, go to "History" and tap [Edit] anytime.',
                     tip3: '• Tap the TH / EN button in the top right corner to switch languages anytime.'
                 };
@@ -1010,7 +1078,7 @@
                 wallpaperSizeToast: isKhrab ? 'ไฟล์ภาพมีขนาดใหญ่เกินไป ลองเลือกรูปอื่นดูนะครับ' : 'ไฟล์ภาพมีขนาดใหญ่เกินไป ลองเลือกรูปอื่นดูนะคะ',
                 langSwitchToast: isKhrab ? 'เปลี่ยนเป็นภาษาไทยแล้วครับ 🇹🇭' : 'เปลี่ยนเป็นภาษาไทยแล้วค่ะ 🇹🇭',
                 shareHint: isKhrab ? 'ข้อความที่จะส่ง (แก้ไขก่อนส่งได้นะครับ):' : 'ข้อความที่จะส่ง (แก้ไขก่อนส่งได้นะคะ):',
-                tip1: isKhrab ? '• หากวันไหนน้ำหนักไม่ลง ไม่ต้องตกใจนะครับ เพราะการบอดี้เวทช่วยสร้างกล้ามเนื้อกระชับสัดส่วนแทนไขมัน ให้ดูที่รอบเอวประกอบด้วยครับ' : '• หากวันไหนน้ำหนักไม่ลง ไม่ต้องตกใจนะคะ เพราะการบอดี้เวทช่วยสร้างกล้ามเนื้อกระชับสัดส่วนแทนไขมัน ให้ดูที่รอบเอวประกอบด้วยค่ะ',
+                tip1: isKhrab ? '• โฟกัสที่ฟอร์มท่าที่ถูกต้อง ไม่ต้องรีบทำจนเหนื่อยเกินไป การบันทึกจำนวนเซตและครั้งจะช่วยให้เห็นพัฒนาการความแข็งแรงชัดเจนครับ' : '• โฟกัสที่ฟอร์มท่าที่ถูกต้อง ไม่ต้องรีบทำจนเหนื่อยเกินไป การบันทึกจำนวนเซตและครั้งจะช่วยให้เห็นพัฒนาการความแข็งแรงชัดเจนค่ะ',
                 tip2: isKhrab ? '• หากลืมจดหรือใส่น้ำหนักผิด เข้าแท็บ "ประวัติ" แล้วกดปุ่ม [แก้ไข] ย้อนหลังได้ตลอดเวลาครับ' : '• หากลืมจดหรือใส่น้ำหนักผิด เข้าแท็บ "ประวัติ" แล้วกดปุ่ม [แก้ไข] ย้อนหลังได้ตลอดเวลาค่ะ',
                 tip3: isKhrab ? '• แตะปุ่ม TH / EN ที่มุมขวาบนเพื่อสลับภาษาไทย-อังกฤษได้ตลอดเวลาครับ' : '• แตะปุ่ม TH / EN ที่มุมขวาบนเพื่อสลับภาษาไทย-อังกฤษได้ตลอดเวลาค่ะ'
             };
@@ -1091,14 +1159,18 @@
             document.getElementById('logSub').innerText = t.logSub;
             document.getElementById('logDateLabel').innerText = t.logDateLabel;
             document.getElementById('logWeightLabel').innerText = t.logWeightLabel;
-            document.getElementById('logWaistLabel').innerText = t.logWaistLabel;
-            document.getElementById('logWaistHint').innerText = t.logWaistHint;
-            document.getElementById('logWaistNote').innerText = t.logWaistNote;
             document.getElementById('logWorkoutLabel').innerText = t.logWorkoutLabel;
             document.getElementById('workJumpropeText').innerText = t.workJumprope;
             document.getElementById('workBodyweightText').innerText = t.workBodyweight;
             document.getElementById('workOtherText').innerText = t.workOther;
             document.getElementById('workRestText').innerText = t.workRest;
+            document.getElementById('logExerciseLabel').innerText = t.logExerciseLabel;
+            document.getElementById('logExerciseHint').innerText = t.logExerciseHint;
+            document.getElementById('inputExercise').placeholder = t.logExercisePlaceholder;
+            document.getElementById('logMetricsLabel').innerText = t.logMetricsLabel;
+            document.getElementById('lblSets').innerText = t.lblSets;
+            document.getElementById('lblReps').innerText = t.lblReps;
+            document.getElementById('lblMins').innerText = t.lblMins;
             document.getElementById('logDetailLabel').innerText = t.logDetailLabel;
             document.getElementById('logMoodLabel').innerText = t.logMoodLabel;
             document.getElementById('moodGreatText').innerText = t.moodGreat;
@@ -1150,6 +1222,7 @@
             document.getElementById('confirmModalActionBtn').innerText = t.confirmOk;
             document.getElementById('milestoneModalCloseBtn').innerText = t.milestoneModalBtn;
 
+            renderQuickChips();
             updateWorkoutPlaceholder();
         }
 
@@ -1493,21 +1566,28 @@
                 else workoutName = isEn ? '💤 Rest Day' : '💤 วันพักผ่อน';
             }
 
-            const detailText = latest?.detail ? ` (${latest.detail})` : '';
-            const waistText = latest?.waist ? `\n📏 ${isEn ? 'Waist:' : 'รอบเอว:'} ${latest.waist} ${isEn ? 'cm' : 'ซม.'}` : '';
+            // Format workout details nicely
+            let workoutStats = [];
+            if (latest?.sets) workoutStats.push(isEn ? `${latest.sets} sets` : `${latest.sets} เซต`);
+            if (latest?.reps) workoutStats.push(isEn ? `${latest.reps} reps` : `${latest.reps} ครั้ง`);
+            if (latest?.minutes) workoutStats.push(isEn ? `${latest.minutes} mins` : `${latest.minutes} นาที`);
+
+            const statsLine = workoutStats.length > 0 ? `\n📊 ${isEn ? 'Stats:' : 'สถิติ:'} ${workoutStats.join(' | ')}` : '';
+            const exerciseLine = latest?.exercise ? `\n🤸‍♀️ ${isEn ? 'Exercise:' : 'ท่าที่เล่น:'} ${latest.exercise}` : '';
+            const detailText = latest?.detail ? `\n📝 ${isEn ? 'Form & How-to:' : 'วิธีทำ/รายละเอียด:'} ${latest.detail}` : '';
             const tone = getToneHelper();
 
             const text = isEn 
                 ? `Mom's Daily MomFit Fitness Update 💖\n` +
                   `📅 Date: ${latest ? latest.date : formatLocalDateString(new Date())}\n` +
                   `⚖️ Weight: ${currentW} kg (${lostW} kg lost so far 🎉)\n` +
-                  `💪 Activity: ${workoutName}${detailText}${waistText}\n` +
+                  `💪 Activity: ${workoutName}${exerciseLine}${statsLine}${detailText}\n` +
                   `💧 Water: ${currentWaterCups} cups\n` +
                   `Feeling strong and ready for the next goal! 💖`
                 : `วันนี้แม่บันทึกสุขภาพ MomFit แล้วนะ 💖\n` +
                   `📅 วันที่: ${formatThaiDate(latest ? latest.date : formatLocalDateString(new Date()))}\n` +
                   `⚖️ น้ำหนัก: ${currentW} กก. (ลดสะสม ${lostW} กก. แล้ว 🎉)\n` +
-                  `💪 กิจกรรม: ${workoutName}${detailText}${waistText}\n` +
+                  `💪 กิจกรรม: ${workoutName}${exerciseLine}${statsLine}${detailText}\n` +
                   `💧 ดื่มน้ำ: ${currentWaterCups} แก้ว\n` +
                   `กำลังใจเต็มร้อย สู้เพื่อเป้าหมายต่อไป${tone.momAddress}`;
 
@@ -1622,16 +1702,26 @@
                 else if (item.workout === 'rest') { icon = '💤'; typeName = isEn ? 'Rest Day' : 'วันพักผ่อน'; }
 
                 const displayDate = isEn ? item.date : formatThaiDate(item.date);
+                const exerciseTitle = item.exercise ? `${item.exercise}` : typeName;
+
+                let statsBadge = [];
+                if (item.sets) statsBadge.push(`${item.sets} ${isEn ? 'sets' : 'เซต'}`);
+                if (item.reps) statsBadge.push(`${item.reps} ${isEn ? 'reps' : 'ครั้ง'}`);
+                if (item.minutes) statsBadge.push(`${item.minutes} ${isEn ? 'm' : 'นาที'}`);
+
                 return `
                     <div class="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/70">
-                        <div class="flex items-center gap-2.5">
-                            <span class="text-xl">${icon}</span>
-                            <div>
-                                <div class="text-xs font-bold text-slate-700">${typeName} <span class="font-normal text-slate-400">(${displayDate})</span></div>
-                                <div class="text-[11px] text-slate-500">${item.detail || '-'} ${item.waist ? `• ${isEn ? 'Waist' : 'เอว'} ${item.waist} ${isEn ? 'cm' : 'ซม.'}` : ''}</div>
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="text-xl shrink-0">${icon}</span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-bold text-slate-700 truncate">${exerciseTitle} <span class="font-normal text-slate-400">(${displayDate})</span></div>
+                                <div class="text-[11px] text-slate-500 truncate">
+                                    ${statsBadge.length > 0 ? `<span class="font-semibold text-rose-600">${statsBadge.join(' • ')}</span> ` : ''}
+                                    ${item.detail ? `• ${item.detail}` : ''}
+                                </div>
                             </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-right shrink-0 ml-2">
                             <span class="text-xs font-bold text-slate-700">${item.weight} ${isEn ? 'kg' : 'กก.'}</span>
                             <span class="block text-[10px] text-slate-400">${item.mood || ''}</span>
                         </div>
@@ -1659,26 +1749,40 @@
                     : (isEn ? '💤 Rest' : '💤 วันพัก');
 
                 const displayDate = isEn ? item.date : formatThaiDate(item.date);
+
+                let statsHtml = '';
+                if (item.sets || item.reps || item.minutes) {
+                    statsHtml = `
+                        <div class="flex items-center gap-1.5 flex-wrap my-1 text-[10px]">
+                            ${item.sets ? `<span class="px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200/60 font-bold text-rose-700">${item.sets} ${isEn ? 'Sets' : 'เซต'}</span>` : ''}
+                            ${item.reps ? `<span class="px-2 py-0.5 rounded-md bg-sky-50 border border-sky-200/60 font-bold text-sky-700">${item.reps} ${isEn ? 'Reps' : 'ครั้ง'}</span>` : ''}
+                            ${item.minutes ? `<span class="px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200/60 font-bold text-emerald-700">${item.minutes} ${isEn ? 'Mins' : 'นาที'}</span>` : ''}
+                        </div>
+                    `;
+                }
+
                 return `
-                    <div class="p-3 bg-slate-50/90 rounded-xl border border-slate-200 flex justify-between items-start gap-2 shadow-2xs transition hover:bg-white">
-                        <div class="flex-1">
+                    <div class="p-3.5 bg-slate-50/90 rounded-2xl border border-slate-200 flex justify-between items-start gap-2 shadow-2xs transition hover:bg-white">
+                        <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-xs font-bold text-slate-800">${displayDate}</span>
                                 <span class="text-[10px] px-2 py-0.5 rounded-full bg-white border border-slate-200 font-medium text-slate-600">${workoutEmoji}</span>
                             </div>
-                            <div class="text-xs text-slate-600">
-                                <strong>${item.detail || '-'}</strong>
-                                ${item.waist ? `<span class="inline-block ml-1 text-[11px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md font-semibold">📏 ${isEn ? 'Waist' : 'เอว'} ${item.waist} ${isEn ? 'cm' : 'ซม.'}</span>` : ''}
-                            </div>
+
+                            ${item.exercise ? `<div class="text-xs font-bold text-slate-800">${item.exercise}</div>` : ''}
+                            
+                            ${statsHtml}
+
+                            ${item.detail ? `<div class="text-xs text-slate-600 leading-relaxed mt-0.5"><span class="text-slate-400 text-[10px]">วิธีทำ:</span> ${item.detail}</div>` : ''}
                             ${item.note ? `<div class="text-[11px] text-slate-400 mt-1 italic">"${item.note}"</div>` : ''}
                         </div>
-                        <div class="text-right flex flex-col items-end shrink-0">
+                        <div class="text-right flex flex-col items-end shrink-0 ml-2">
                             <span class="text-base font-bold dynamic-theme-text">${item.weight} <span class="text-[10px] font-normal text-slate-400">${isEn ? 'kg' : 'กก.'}</span></span>
-                            <div class="flex items-center gap-1 mt-1.5">
-                                <button onclick="editLogEntry(${item.id})" class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 text-[11px] font-medium flex items-center gap-1 active:scale-95 transition">
+                            <div class="flex items-center gap-1 mt-2">
+                                <button onclick="editLogEntry(${item.id})" class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 text-[11px] font-medium flex items-center gap-1 active:scale-95 transition shadow-2xs">
                                     <i class="fa-solid fa-pen-to-square text-[10px]"></i> ${isEn ? 'Edit' : 'แก้ไข'}
                                 </button>
-                                <button onclick="deleteLogEntry(${item.id})" class="p-1 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 text-xs transition">
+                                <button onclick="deleteLogEntry(${item.id})" class="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 text-xs transition">
                                     <i class="fa-regular fa-trash-can"></i>
                                 </button>
                             </div>
@@ -1694,10 +1798,42 @@
             input.value = Math.max(30, Math.min(200, current + amount)).toFixed(1);
         }
 
-        function adjustWaistInput(amount) {
-            const input = document.getElementById('inputWaist');
-            let current = parseFloat(input.value) || 85.0;
-            input.value = Math.max(40, Math.min(150, current + amount)).toFixed(1);
+        function adjustMetricInput(elementId, amount, minVal = 0) {
+            const input = document.getElementById(elementId);
+            if (!input) return;
+            let current = parseInt(input.value, 10) || 0;
+            input.value = Math.max(minVal, current + amount);
+        }
+
+        function renderQuickChips() {
+            const container = document.getElementById('quickExerciseChips');
+            if (!container) return;
+            const presets = exercisePresets[selectedWorkoutType] || [];
+            const isEn = currentLang === 'en';
+
+            if (presets.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            container.innerHTML = presets.map(p => {
+                const label = isEn ? p.en : p.th;
+                return `
+                    <button type="button" onclick="quickAddExercise('${label}')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-600 hover:text-rose-600 text-[11px] font-medium active:scale-95 transition shadow-2xs">
+                        + ${label}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function quickAddExercise(name) {
+            const input = document.getElementById('inputExercise');
+            if (!input) return;
+            if (!input.value.trim()) {
+                input.value = name;
+            } else if (!input.value.includes(name)) {
+                input.value = `${input.value} + ${name}`;
+            }
         }
 
         function selectWorkout(type) {
@@ -1726,6 +1862,7 @@
                 detailContainer.style.display = 'none';
             }
 
+            renderQuickChips();
             updateWorkoutPlaceholder();
         }
 
@@ -1749,12 +1886,15 @@
             e.preventDefault();
             const date = document.getElementById('inputDate').value;
             const weight = parseFloat(document.getElementById('inputWeight').value);
-            const waistVal = document.getElementById('inputWaist').value;
-            const waist = waistVal ? parseFloat(waistVal) : null;
             const defaultWorkoutName = (selectedWorkoutType === 'rest') 
                 ? (currentLang === 'en' ? 'Rest Day' : 'วันพักผ่อน')
                 : (currentLang === 'en' ? 'Workout' : 'ออกกำลังกาย');
-            const detail = document.getElementById('inputWorkoutDetail').value || defaultWorkoutName;
+
+            const exercise = document.getElementById('inputExercise').value.trim() || defaultWorkoutName;
+            const sets = parseInt(document.getElementById('inputSets').value, 10) || 0;
+            const reps = parseInt(document.getElementById('inputReps').value, 10) || 0;
+            const minutes = parseInt(document.getElementById('inputMinutes').value, 10) || 0;
+            const detail = document.getElementById('inputWorkoutDetail').value.trim();
             const mood = document.querySelector('input[name="mood"]:checked')?.value || '😊 กำลังดี';
             const note = document.getElementById('inputNote').value.trim();
 
@@ -1765,14 +1905,38 @@
             if (editingLogId) {
                 const index = logs.findIndex(l => l.id === editingLogId);
                 if (index !== -1) {
-                    logs[index] = { ...logs[index], date, weight, waist, workout: selectedWorkoutType, detail, mood, note };
+                    logs[index] = { 
+                        ...logs[index], 
+                        date, 
+                        weight, 
+                        workout: selectedWorkoutType, 
+                        exercise,
+                        sets,
+                        reps,
+                        minutes,
+                        detail, 
+                        mood, 
+                        note 
+                    };
                 }
                 editingLogId = null;
                 document.getElementById('editModeAlert').classList.add('hidden');
                 document.getElementById('saveLogButtonText').innerText = (currentLang === 'en') ? i18n.en.logSaveBtn : i18n.th.logSaveBtn;
                 showToast(tone.editSavedToast, 'success');
             } else {
-                const newLog = { id: Date.now(), date, weight, waist, workout: selectedWorkoutType, detail, mood, note };
+                const newLog = { 
+                    id: Date.now(), 
+                    date, 
+                    weight, 
+                    workout: selectedWorkoutType, 
+                    exercise,
+                    sets,
+                    reps,
+                    minutes,
+                    detail, 
+                    mood, 
+                    note 
+                };
                 logs.push(newLog);
                 const newLost = Math.max(0, settings.startWeight - weight);
                 checkNewMilestoneUnlocked(prevLost, newLost);
@@ -1792,7 +1956,10 @@
 
             document.getElementById('inputDate').value = entry.date;
             document.getElementById('inputWeight').value = entry.weight;
-            document.getElementById('inputWaist').value = entry.waist || '';
+            document.getElementById('inputExercise').value = entry.exercise || '';
+            document.getElementById('inputSets').value = entry.sets || '';
+            document.getElementById('inputReps').value = entry.reps || '';
+            document.getElementById('inputMinutes').value = entry.minutes || '';
             document.getElementById('inputWorkoutDetail').value = entry.detail || '';
             document.getElementById('inputNote').value = entry.note || '';
 
